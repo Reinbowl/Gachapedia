@@ -426,63 +426,49 @@ html, body {
 
 <script type="module">
 // ═══════════════════════════════════════════════════════════════
-// LLM — @huggingface/transformers v4
+// WORKER BRIDGE
+// All LLM work runs in worker.js off the main thread.
+// The main thread only holds lightweight promise resolvers.
 // ═══════════════════════════════════════════════════════════════
-import { pipeline, env }
-  from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.0.0-next.8';
 
-env.allowLocalModels = false;
-env.useBrowserCache  = true;
+// pending summarise promises: id → { resolve }
+const pending = new Map();
 
-// distilbart-cnn-6-6: trained specifically for summarisation — far better than flan-t5-small
-// (~250 MB quantised, cached in IndexedDB after first load)
-const MODEL = 'Xenova/distilbart-cnn-6-6';
-let pipe      = null;
-let loadState = 'idle';
+const worker = new Worker('./worker.js', { type: 'module' });
 
-async function loadModel(onProgress) {
-  if (loadState === 'ready') return true;
-  if (loadState === 'error') return false;
-  loadState = 'loading';
-  try {
-    pipe = await pipeline('summarization', MODEL, {
-      dtype: 'q8',
-      progress_callback: p => {
-        if (p.status === 'progress')
-          onProgress?.({ pct: Math.round(p.progress ?? 0), file: p.file || '' });
-        else if (p.status === 'done')
-          onProgress?.({ pct: 100, file: 'done' });
-      },
-    });
-    loadState = 'ready';
-    return true;
-  } catch (err) {
-    console.warn('[LLM] load failed:', err);
-    loadState = 'error';
-    return false;
+worker.addEventListener('message', ({ data }) => {
+  switch (data.type) {
+    case 'progress':
+      modelDot.className     = 'loading';
+      modelLabel.textContent = `Loading AI — ${data.pct}%`;
+      break;
+    case 'ready':
+      modelDot.className     = 'ready';
+      modelLabel.textContent = 'AI ready ✓';
+      break;
+    case 'error':
+      modelDot.className     = 'error';
+      modelLabel.textContent = 'AI unavailable — using excerpts';
+      break;
+    case 'summary': {
+      const p = pending.get(data.id);
+      if (p) { p.resolve(data.text); pending.delete(data.id); }
+      break;
+    }
   }
-}
+});
 
-async function summarise(title, extract) {
-  if (!pipe) return smartTrunc(extract, 320);
-  try {
-    const out  = await pipe(extract.slice(0, 800), {
-      max_new_tokens: 120,
-      min_new_tokens: 30,
-      num_beams: 4,
-      early_stopping: true,
-      no_repeat_ngram_size: 3,
-    });
-    const text = (out[0]?.summary_text || '').trim();
-    return text.length > 20 ? text : smartTrunc(extract, 320);
-  } catch (e) {
-    console.warn('[LLM] summarise error:', e);
-    return smartTrunc(extract, 320);
-  }
-}
+// Kick off model load immediately (runs in background, never blocks UI)
+worker.postMessage({ type: 'load' });
 
-// distilbart is summarisation-only; insight stub kept for compatibility
-async function getInsight() { return null; }
+// Returns a Promise that resolves when the worker replies for this article
+function summarise(id, extract) {
+  return new Promise(resolve => {
+    const fallback = smartTrunc(extract, 320);
+    pending.set(id, { resolve });
+    worker.postMessage({ type: 'summarise', id, text: extract, fallback });
+  });
+}
 
 function smartTrunc(text, max) {
   if (!text || text.length <= max) return text;
@@ -546,20 +532,6 @@ let articles = [], idx = 0, dragX = 0, dragging = false;
 // ═══════════════════════════════════════════════════════════════
 initStarfield();
 
-loadModel(({ pct, file }) => {
-  if (pct >= 100 || file === 'done') return; // .then() handles final state
-  modelDot.className    = 'loading';
-  modelLabel.textContent = `Loading AI — ${pct}%`;
-}).then(ok => {
-  if (ok) {
-    modelDot.className    = 'ready';
-    modelLabel.textContent = 'AI ready ✓';
-  } else {
-    modelDot.className    = 'error';
-    modelLabel.textContent = 'AI unavailable — using excerpts';
-  }
-});
-
 pullBtn.addEventListener('click', openBook);
 prevBtn.addEventListener('click', () => goTo(idx - 1));
 nextBtn.addEventListener('click', () => goTo(idx + 1));
@@ -619,12 +591,12 @@ async function openBook() {
     el.classList.add('revealed');
   });
 
-  for (let i = 0; i < articles.length; i++) {
-    const art = articles[i];
-    const [summary, insight] = await Promise.all([
-      summarise(art.title, art.extract), getInsight(art.title)]);
-    fillPage(i, summary, insight);
-  }
+  // Send all 5 articles to the worker simultaneously — they run in order
+  // inside the worker but the main thread stays free the whole time.
+  const summaryPromises = articles.map((art, i) => summarise(i, art.extract));
+
+  // Fill each page as its summary arrives (they resolve one by one)
+  summaryPromises.forEach((p, i) => p.then(text => fillPage(i, text, null)));
 }
 
 // ═══════════════════════════════════════════════════════════════
