@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>The Book of Knowledge</title>
+  <title>Gachapedia</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=IM+Fell+English:ital@0;1&display=swap" rel="stylesheet" />
   <style>
@@ -152,39 +152,34 @@ html, body {
   transform: rotateY(90deg); transform-origin: left center; z-index: 1;
 }
 
-/* book open animation */
+/* ── Book opening — simple cover flip ── */
 #book.opening { animation: none !important; }
+
 #book.opening .front-cover {
   animation: cover-open 0.9s cubic-bezier(.4,0,.2,1) forwards;
 }
-#book.opening .book-page-block {
-  animation: pages-shrink .4s ease forwards;
-}
 @keyframes cover-open {
   0%   { transform: rotateY(0deg); }
-  100% { transform: rotateY(-145deg); }
+  100% { transform: rotateY(-162deg); }
 }
-@keyframes pages-shrink { to { opacity:0; transform: rotateY(90deg) scaleX(0); } }
 
-/* burst particles */
-#burst-root {
-  position: absolute; top: 50%; left: 50%;
-  width: 0; height: 0; pointer-events: none; z-index: 10;
+#book.opening .book-page-block {
+  animation: pages-shrink .4s ease .5s forwards;
 }
-.burst-particle {
-  position: absolute; width: 5px; height: 5px; border-radius: 50%;
-  background: var(--gold);
-  box-shadow: 0 0 8px var(--gold), 0 0 16px rgba(201,162,39,.5);
-  animation: burst-fly .9s ease-out forwards;
+@keyframes pages-shrink { to { opacity:0; } }
+
+/* Book fades slightly so golden glow can shine through */
+#book.opening {
+  animation: none !important;
+  filter: drop-shadow(0 0 0px transparent);
 }
-.burst-particle.spark {
-  width: 2px; height: 8px; border-radius: 1px;
-  background: linear-gradient(to bottom, #fff8d0, var(--gold));
-}
-@keyframes burst-fly {
-  0%   { transform: rotate(var(--a)) translateX(0); opacity:1; }
-  60%  { opacity:1; }
-  100% { transform: rotate(var(--a)) translateX(var(--d)); opacity:0; }
+
+/* Inner pages visible when cover opens */
+.book-inner-pages {
+  position: absolute; inset: 0;
+  border-radius: 2px 12px 12px 2px;
+  background: linear-gradient(to right, #f5ecd4 0%, #ede2c3 60%, #e0d4b0 100%);
+  z-index: 1;
 }
 
 /* ─── CONTROLS ───────────────────────────────────────────────── */
@@ -384,8 +379,8 @@ html, body {
   <div id="scene">
     <header class="site-header">
       <div class="header-rule"></div>
-      <h1>✦ &nbsp; The Book of Knowledge &nbsp; ✦</h1>
-      <p>Ancient secrets await within its pages</p>
+      <h1>✦ &nbsp; GACHAPEDIA &nbsp; ✦</h1>
+      <p>what wisdom will your luck bless</p>
       <div class="header-rule"></div>
     </header>
 
@@ -396,17 +391,18 @@ html, body {
           <div class="cover-border">
             <span class="cover-ornament">⁂</span>
             <div class="cover-title">
-              <span class="cover-title-latin">LIBER</span>
-              <span class="cover-title-latin sub">COGNITIONIS</span>
+              <span class="cover-title-latin">WIKIPEDIA</span>
+              <span class="cover-title-latin sub">LEXICA</span>
             </div>
             <span class="cover-ornament">⁂</span>
           </div>
         </div>
         <div class="book-cover back-cover"></div>
+        <div class="book-inner-pages"></div>
         <div class="book-spine"></div>
         <div class="book-page-block"></div>
       </div>
-      <div id="burst-root"></div>
+
     </div>
 
     <div id="controls">
@@ -416,7 +412,7 @@ html, body {
       </button>
       <div id="model-status">
         <span id="model-dot" class="loading"></span>
-        <span id="model-label">Loading AI model…</span>
+        <span id="model-label">Loading scribe…</span>
       </div>
     </div>
   </div>
@@ -453,15 +449,15 @@ worker.addEventListener('message', ({ data }) => {
   switch (data.type) {
     case 'progress':
       modelDot.className     = 'loading';
-      modelLabel.textContent = `Loading AI — ${data.pct}%`;
+      modelLabel.textContent = `Loading scribe — ${data.pct}%`;
       break;
     case 'ready':
       modelDot.className     = 'ready';
-      modelLabel.textContent = 'AI ready ✓';
+      modelLabel.textContent = 'Scribe ready ✓';
       break;
     case 'error':
       modelDot.className     = 'error';
-      modelLabel.textContent = 'AI unavailable — using excerpts';
+      modelLabel.textContent = 'Scribe unavailable — using excerpts';
       break;
     case 'summary': {
       const p = pending.get(data.id);
@@ -524,7 +520,6 @@ async function fetchArticles(n = 5) {
 // DOM REFS
 // ═══════════════════════════════════════════════════════════════
 const bookEl     = document.getElementById('book');
-const burstRoot  = document.getElementById('burst-root');
 const pullBtn    = document.getElementById('pull-btn');
 const btnLabel   = pullBtn.querySelector('.btn-label');
 const modelDot   = document.getElementById('model-dot');
@@ -682,30 +677,112 @@ function fillPage(i, summary, insight) {
 function animateOpen() {
   return new Promise(resolve => {
     bookEl.classList.add('opening');
-    setTimeout(() => { flashScreen(); spawnBurst(); }, 600);
-    setTimeout(resolve, 1050);
+    setTimeout(() => drawMagicLight(), 700);
+    setTimeout(resolve, 2000);
   });
 }
 
-function flashScreen() {
-  const f = document.createElement('div');
-  Object.assign(f.style, { position:'fixed', inset:'0', zIndex:'50',
-    background:'rgba(255,240,180,.18)', pointerEvents:'none', transition:'opacity .5s' });
-  document.body.appendChild(f);
-  requestAnimationFrame(() => { f.style.opacity = '0'; setTimeout(() => f.remove(), 600); });
-}
+function drawMagicLight() {
+  // Create canvas directly on body — bypasses any parent perspective/transform
+  const canvas = document.createElement('canvas');
+  canvas.style.cssText =
+    'position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:50;';
+  document.body.appendChild(canvas);
+  const W = canvas.width  = window.innerWidth;
+  const H = canvas.height = window.innerHeight;
+  const ctx = canvas.getContext('2d');
 
-function spawnBurst() {
-  burstRoot.innerHTML = '';
-  for (let i = 0; i < 28; i++) {
-    const el  = document.createElement('div');
-    el.className = 'burst-particle' + (i % 5 === 0 ? '' : ' spark');
-    const angle = (i / 28) * 360 + (Math.random() * 12 - 6);
-    const dist  = 70 + Math.random() * 120;
-    el.style.cssText = `--a:${angle}deg; --d:${dist}px; animation-delay:${Math.random() * .25}s`;
-    burstRoot.appendChild(el);
+  // Vanishing point = center of the actual book element on screen
+  const bookRect = bookEl.getBoundingClientRect();
+  const ox = bookRect.left + bookRect.width  / 2;
+  const oy = bookRect.top  + bookRect.height / 2;
+
+  const startTime = performance.now();
+  const duration  = 1600;
+
+  const RAYS = Array.from({ length: 24 }, (_, i) => ({
+    angle: (i / 24) * Math.PI * 2 + (Math.random() - .5) * .18,
+    width: 3  + Math.random() * 14,
+    delay: Math.random() * .12,
+    speed: .7 + Math.random() * .3,
+  }));
+
+  const PARTICLES = Array.from({ length: 60 }, () => ({
+    angle: Math.random() * Math.PI * 2,
+    born:  Math.random() * .25,
+    life:  .35 + Math.random() * .45,
+    r0:    1   + Math.random() * 2,
+    r1:    3   + Math.random() * 6,
+    dist0: 10  + Math.random() * 40,
+    dist1: Math.min(W, H) * (.4 + Math.random() * .5),
+  }));
+
+  function ease(t) { return t < .5 ? 2*t*t : -1+(4-2*t)*t; }
+
+  function draw(now) {
+    const t = Math.min((now - startTime) / duration, 1);
+    ctx.clearRect(0, 0, W, H);
+
+    // Central glow expanding outward
+    const glowR     = 40 + ease(t) * 220;
+    const glowAlpha = Math.sin(t * Math.PI) * .32;
+    const grd = ctx.createRadialGradient(ox, oy, 0, ox, oy, glowR);
+    grd.addColorStop(0,   `rgba(255,220,90,${glowAlpha})`);
+    grd.addColorStop(.35, `rgba(200,140,30,${glowAlpha * .5})`);
+    grd.addColorStop(1,   'transparent');
+    ctx.fillStyle = grd;
+    ctx.beginPath(); ctx.arc(ox, oy, glowR, 0, Math.PI * 2); ctx.fill();
+
+    // Rays — trapezoid wedges zooming outward from book center
+    const maxDist = Math.sqrt(W * W + H * H);
+    RAYS.forEach(ray => {
+      const rt = Math.max(0, (t - ray.delay) / ray.speed);
+      if (rt <= 0) return;
+      const progress = Math.min(rt, 1);
+      const alpha    = Math.sin(progress * Math.PI) * .42;
+      const tipDist  = maxDist * .65 * progress;
+      const baseDist = tipDist * .08;
+      const cos = Math.cos(ray.angle), sin = Math.sin(ray.angle);
+      const perp = { x: -sin, y: cos };
+      const hBase = ray.width * .3, hTip = ray.width * progress * 2.5;
+      const g = ctx.createLinearGradient(ox, oy, ox + cos*tipDist, oy + sin*tipDist);
+      g.addColorStop(0,  `rgba(255,235,130,${alpha})`);
+      g.addColorStop(.5, `rgba(201,162,39,${alpha * .7})`);
+      g.addColorStop(1,  'transparent');
+      ctx.beginPath();
+      ctx.moveTo(ox + cos*baseDist - perp.x*hBase, oy + sin*baseDist - perp.y*hBase);
+      ctx.lineTo(ox + cos*baseDist + perp.x*hBase, oy + sin*baseDist + perp.y*hBase);
+      ctx.lineTo(ox + cos*tipDist  + perp.x*hTip,  oy + sin*tipDist  + perp.y*hTip);
+      ctx.lineTo(ox + cos*tipDist  - perp.x*hTip,  oy + sin*tipDist  - perp.y*hTip);
+      ctx.closePath(); ctx.fillStyle = g; ctx.fill();
+    });
+
+    // Particles — grow as they fly out (zoom-toward-viewer illusion)
+    PARTICLES.forEach(p => {
+      const pt = Math.max(0, (t - p.born) / p.life);
+      if (pt <= 0 || pt > 1) return;
+      const alpha = Math.sin(pt * Math.PI) * .85;
+      const dist  = p.dist0 + (p.dist1 - p.dist0) * ease(pt);
+      const r     = p.r0    + (p.r1    - p.r0)    * pt;
+      const x = ox + Math.cos(p.angle) * dist;
+      const y = oy + Math.sin(p.angle) * dist;
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255,245,180,${alpha})`; ctx.fill();
+      if (p.r0 > 2.5) {
+        ctx.strokeStyle = `rgba(255,255,220,${alpha * .6})`;
+        ctx.lineWidth = .8;
+        ctx.beginPath();
+        ctx.moveTo(x - r*1.6, y); ctx.lineTo(x + r*1.6, y);
+        ctx.moveTo(x, y - r*1.6); ctx.lineTo(x, y + r*1.6);
+        ctx.stroke();
+      }
+    });
+
+    if (t < 1) requestAnimationFrame(draw);
+    else        canvas.remove(); // detach entirely when done
   }
-  setTimeout(() => { burstRoot.innerHTML = ''; }, 1400);
+
+  requestAnimationFrame(draw);
 }
 
 // ═══════════════════════════════════════════════════════════════
