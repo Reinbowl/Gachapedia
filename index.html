@@ -290,11 +290,15 @@ html, body {
 .page-divider { width: 60%; margin: 0 auto; height: 1px; background: linear-gradient(90deg, transparent, rgba(160,120,50,.4), transparent); }
 
 .page-img-wrap {
-  border: 1px solid rgba(160,120,50,.35); border-radius: 3px; overflow: hidden;
-  width: 100%; aspect-ratio: 16 / 9; flex-shrink: 0;
-  background: rgba(200,170,100,.1);
+  border: 1px solid rgba(201,162,39,.3); border-radius: 3px;
+  height: 160px; width: 100%; flex-shrink: 0;
+  display: flex; justify-content: center; align-items: center;
+  background: rgba(14,10,6,.04); overflow: hidden;
 }
-.page-img-wrap img { width: 100%; height: 100%; object-fit: cover; object-position: center center; display: block; }
+.page-img-wrap img {
+  height: 100%; width: auto; /* natural width from ratio, fixed height */
+  display: block;
+}
 
 /* padding-left removed — no more margin line to clear */
 .page-text { font-size: .98rem; line-height: 1.75; color: var(--ink2); flex: 1; position: relative; z-index: 1; }
