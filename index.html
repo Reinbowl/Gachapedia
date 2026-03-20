@@ -312,6 +312,18 @@ html, body {
 .page-link a { color: #7a4010; text-decoration: none; letter-spacing: .04em; }
 .page-link a:hover { text-decoration: underline; }
 
+.page-img-placeholder {
+  border: 1px dashed rgba(160,120,50,.35); border-radius: 3px;
+  height: 90px; flex-shrink: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+  background: rgba(200,170,100,.06);
+}
+.pip-glyph { font-size: 1.4rem; color: rgba(160,120,50,.35); }
+.pip-label {
+  font-family: var(--fd); font-size: 2rem; font-weight: 900;
+  color: rgba(160,120,50,.2); line-height: 1;
+}
+
 .page-paper::-webkit-scrollbar { width: 3px; }
 .page-paper::-webkit-scrollbar-thumb { background: rgba(160,120,50,.3); border-radius: 2px; }
 
@@ -422,7 +434,9 @@ import { pipeline, env }
 env.allowLocalModels = false;
 env.useBrowserCache  = true;
 
-const MODEL = 'Xenova/flan-t5-small';
+// distilbart-cnn-6-6: trained specifically for summarisation — far better than flan-t5-small
+// (~250 MB quantised, cached in IndexedDB after first load)
+const MODEL = 'Xenova/distilbart-cnn-6-6';
 let pipe      = null;
 let loadState = 'idle';
 
@@ -431,7 +445,7 @@ async function loadModel(onProgress) {
   if (loadState === 'error') return false;
   loadState = 'loading';
   try {
-    pipe = await pipeline('text2text-generation', MODEL, {
+    pipe = await pipeline('summarization', MODEL, {
       dtype: 'q8',
       progress_callback: p => {
         if (p.status === 'progress')
@@ -451,24 +465,24 @@ async function loadModel(onProgress) {
 
 async function summarise(title, extract) {
   if (!pipe) return smartTrunc(extract, 320);
-  const input = `Summarize this encyclopedia entry about ${title}: ${extract}`.slice(0, 512);
   try {
-    const out  = await pipe(input, { max_new_tokens: 110, num_beams: 2, early_stopping: true });
-    const text = out[0]?.generated_text?.trim() || '';
+    const out  = await pipe(extract.slice(0, 800), {
+      max_new_tokens: 120,
+      min_new_tokens: 30,
+      num_beams: 4,
+      early_stopping: true,
+      no_repeat_ngram_size: 3,
+    });
+    const text = (out[0]?.summary_text || '').trim();
     return text.length > 20 ? text : smartTrunc(extract, 320);
-  } catch { return smartTrunc(extract, 320); }
+  } catch (e) {
+    console.warn('[LLM] summarise error:', e);
+    return smartTrunc(extract, 320);
+  }
 }
 
-async function getInsight(title) {
-  if (!pipe) return null;
-  try {
-    const out  = await pipe(
-      `In one sentence, what important fact should everyone know about "${title}"?`.slice(0, 200),
-      { max_new_tokens: 55, num_beams: 2 });
-    const text = out[0]?.generated_text?.trim() || '';
-    return text.length > 10 ? text : null;
-  } catch { return null; }
-}
+// distilbart is summarisation-only; insight stub kept for compatibility
+async function getInsight() { return null; }
 
 function smartTrunc(text, max) {
   if (!text || text.length <= max) return text;
@@ -638,20 +652,45 @@ function buildShells() {
   articles.forEach((art, i) => {
     const page = document.createElement('div');
     page.className = 'torn-page';
-    const img = art.image
-      ? `<div class="page-img-wrap"><img src="${esc(art.image)}" alt="${esc(art.title)}" loading="lazy" onerror="this.closest('.page-img-wrap').remove()"/></div>` : '';
+    // Build image section safely — never use inline onerror with single-quotes inside innerHTML
+    let imgHtml = '';
+    if (art.image) {
+      // Use a wrapper id so we can safely hide it on error via a global handler
+      imgHtml = `<div class="page-img-wrap" id="piw-${i}">
+        <img src="${esc(art.image)}" alt="${esc(art.title)}" loading="lazy"/>
+      </div>`;
+    } else {
+      imgHtml = `<div class="page-img-placeholder">
+        <span class="pip-glyph">✦</span>
+        <span class="pip-label">${esc(art.title.charAt(0).toUpperCase())}</span>
+      </div>`;
+    }
     page.innerHTML = `
       <div class="page-paper" style="clip-path:${tornPath()}">
         <span class="page-num">— Page ${i+1} of 5 —</span>
         <h2 class="page-title">${esc(art.title)}</h2>
         ${art.description ? `<p class="page-desc">${esc(art.description)}</p>` : ''}
         <div class="page-divider"></div>
-        ${img}
+        ${imgHtml}
         <p class="page-text loading-text thinking-dots" id="pt-${i}">The ancient scribes are transcribing</p>
         <div class="page-insight" id="pi-${i}" style="display:none"></div>
         ${art.url ? `<div class="page-link"><a href="${esc(art.url)}" target="_blank" rel="noopener">Read on Wikipedia ↗</a></div>` : ''}
       </div>`;
     track.appendChild(page);
+
+    // Attach error handler after DOM insertion so we avoid innerHTML quoting issues
+    if (art.image) {
+      const imgEl  = page.querySelector('img');
+      const wrapEl = page.querySelector(`#piw-${i}`);
+      if (imgEl && wrapEl) {
+        imgEl.addEventListener('error', () => {
+          wrapEl.outerHTML = `<div class="page-img-placeholder">
+            <span class="pip-glyph">✦</span>
+            <span class="pip-label">${esc(art.title.charAt(0).toUpperCase())}</span>
+          </div>`;
+        });
+      }
+    }
 
     const dot = document.createElement('button');
     dot.className = 'page-dot' + (i === 0 ? ' active' : '');
