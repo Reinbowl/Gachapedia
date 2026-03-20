@@ -442,6 +442,7 @@ html, body {
 
 // pending summarise promises: id → { resolve }
 const pending = new Map();
+let generation = 0; // increments each time the book is opened
 
 const worker = new Worker('./worker.js', { type: 'module' });
 
@@ -461,7 +462,7 @@ worker.addEventListener('message', ({ data }) => {
       break;
     case 'summary': {
       const p = pending.get(data.id);
-      if (p) { p.resolve(data.text); pending.delete(data.id); }
+      if (p && p.gen === generation) { p.resolve(data.text); pending.delete(data.id); }
       break;
     }
   }
@@ -474,7 +475,7 @@ worker.postMessage({ type: 'load' });
 function summarise(id, extract) {
   return new Promise(resolve => {
     const fallback = smartTrunc(extract, 320);
-    pending.set(id, { resolve });
+    pending.set(id, { resolve, gen: generation });
     worker.postMessage({ type: 'summarise', id, text: extract, fallback });
   });
 }
@@ -571,6 +572,7 @@ document.addEventListener('keydown', e => {
 // ═══════════════════════════════════════════════════════════════
 async function openBook() {
   pullBtn.disabled = true;
+  generation++;                      // invalidates any in-flight summaries from last pull
   setLabel('📜 &nbsp; Consulting the archives…');
 
   let fetched;
