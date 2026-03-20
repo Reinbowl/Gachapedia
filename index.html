@@ -291,14 +291,16 @@ html, body {
 
 .page-img-wrap {
   border: 1px solid rgba(201,162,39,.3); border-radius: 3px;
-  flex-shrink: 0; align-self: center;   /* shrinks to image width, centres horizontally */
+  flex-shrink: 0; align-self: center;
   overflow: hidden;
   background: transparent;
+  max-width: 100%;               /* never wider than the card */
 }
 .page-img-wrap img {
   display: block;
-  height: clamp(160px, 38vh, 260px);    /* responsive — never overflows card */
-  width: auto;                           /* natural width from ratio */
+  height: clamp(160px, 38vh, 260px);
+  width: auto;
+  max-width: 100%;               /* wide landscape images scale down to fit */
 }
 
 /* padding-left removed — no more margin line to clear */
