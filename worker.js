@@ -49,16 +49,25 @@ async function runSummarise(id, text, fallback) {
   }
   try {
     const out    = await pipe(text.slice(0, 800), {
-      max_new_tokens:       120,
-      min_new_tokens:       30,
+      max_new_tokens:       180,
+      min_new_tokens:       40,
       num_beams:            4,
       early_stopping:       true,
       no_repeat_ngram_size: 3,
     });
-    const result = (out[0]?.summary_text || '').trim();
+    const raw    = (out[0]?.summary_text || '').trim();
+    const result = trimToSentence(raw);
     self.postMessage({ type: 'summary', id, text: result.length > 20 ? result : fallback });
   } catch (err) {
     console.warn('[worker] summarise error:', err);
     self.postMessage({ type: 'summary', id, text: fallback });
   }
+}
+
+// Trim text to last complete sentence so summaries never end mid-fragment
+function trimToSentence(text) {
+  if (!text) return text;
+  const match = text.match(/^(.*[.!?])\s*/s);
+  if (match && match[1].length > 20) return match[1];
+  return text;
 }
