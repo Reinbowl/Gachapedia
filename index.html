@@ -192,10 +192,11 @@ html, body {
   color: rgba(201,162,39,.7);
 }
 .select-wrap {
-  position: relative; width: 100%;
+  position: relative;
+  display: inline-flex; /* shrinks to content */
 }
 #scribe-select {
-  width: 100%; padding: 9px 36px 9px 14px;
+  padding: 9px 36px 9px 14px;
   background: rgba(30,15,5,.85);
   border: 1px solid rgba(201,162,39,.35);
   border-radius: 6px;
@@ -446,9 +447,9 @@ html, body {
         <label for="scribe-select">✦ &nbsp; Choose your Scribe</label>
         <div class="select-wrap">
           <select id="scribe-select">
-            <option value="none">📜 &nbsp; Swift Scribe — no AI, excerpts only</option>
-            <option value="small">🪶 &nbsp; Apprentice Scribe — fast, lightweight (~50 MB)</option>
-            <option value="full" selected>📖 &nbsp; Master Scribe — best quality (~250 MB)</option>
+            <option value="none" selected>📜 &nbsp; Swift Scribe</option>
+            <option value="small">🪶 &nbsp; Apprentice Scribe</option>
+            <option value="full">📖 &nbsp; Master Scribe</option>
           </select>
           <span class="select-arrow">▾</span>
         </div>
@@ -495,9 +496,9 @@ let generation  = 0;
 let scribeMode  = 'full'; // 'none' | 'small' | 'full'
 
 const HINTS = {
-  none:  'No AI — fast, uses raw Wikipedia excerpts.',
-  small: 'Lightweight model (~50 MB). Good for mobile.',
-  full:  'Best quality summaries (~250 MB). Recommended for desktop.',
+  none:  'Fastest scribe in the south.',
+  small: 'Still learning the ropes.',
+  full:  'Old but wise.',
 };
 const MODELS = {
   small: 'Xenova/distilbart-cnn-6-6',  // ~50MB q8
@@ -604,11 +605,6 @@ let articles = [], idx = 0, dragX = 0, dragging = false;
 initStarfield();
 
 // Default to 'small' on mobile to avoid crashes
-const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
-if (isMobile) {
-  scribeSel.value = 'small';
-}
-
 function applyScribeChoice(val) {
   scribeMode = val;
   scribeHint.textContent = HINTS[val];
