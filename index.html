@@ -259,22 +259,44 @@ html, body {
 #viewer {
   position: fixed; inset: 0; z-index: 20;
   background: transparent;
-  display: flex; align-items: center; justify-content: center; padding: 1rem;
+  display: flex; align-items: center; justify-content: center;
+  padding: env(safe-area-inset-top, 0.75rem) 1rem 1rem;
 }
 #viewer.hidden { display: none !important; }
 
+/* X close button — top-right corner of viewer */
+#close-btn {
+  position: fixed; top: 14px; right: 14px; z-index: 30;
+  width: 36px; height: 36px; border-radius: 50%;
+  border: 1.5px solid var(--gold);
+  background: rgba(14,10,6,.75);
+  color: var(--gold); font-size: 1.1rem; line-height: 1;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: all .2s;
+  box-shadow: 0 0 10px rgba(0,0,0,.5);
+}
+#close-btn:hover { background: var(--gold-dim); box-shadow: 0 0 12px var(--gold-glow); }
+
 #viewer-inner {
-  width: 100%; max-width: 420px; height: 100%; max-height: 90vh;
-  display: flex; flex-direction: column; align-items: center; gap: 1.1rem;
+  width: 100%; max-width: 420px; height: 100%;
+  display: flex; flex-direction: column; align-items: center; gap: 0.7rem;
+  /* account for the fixed X button at top */
+  padding-top: 2.5rem;
 }
 
 #pages-viewport {
-  width: 100%; flex: 1; overflow: hidden; cursor: grab;
+  width: 100%; flex: 1; overflow: hidden; cursor: grab; min-height: 0;
 }
 #pages-viewport:active { cursor: grabbing; }
 #pages-track {
   display: flex; height: 100%; will-change: transform;
   transition: transform .42s cubic-bezier(.25,.46,.45,.94);
+}
+
+/* Hide arrow nav buttons on touch devices — swipe is used instead */
+@media (hover: none) and (pointer: coarse) {
+  .nav-btn { display: none; }
+  #viewer-nav { gap: 0; }
 }
 
 /* ─── AGED PARCHMENT CARD ────────────────────────────────────── */
@@ -391,13 +413,10 @@ html, body {
 }
 .page-dot.active { background: var(--gold); box-shadow: 0 0 7px var(--gold-glow); }
 
-#close-btn {
-  background: none; border: 1px solid rgba(201,162,39,.3);
-  color: rgba(201,162,39,.6); padding: 7px 22px; border-radius: 20px;
-  cursor: pointer; font-family: var(--fd); font-size: .75rem;
-  letter-spacing: .06em; transition: all .25s;
+/* Mobile — smaller image so text fits without scrolling */
+@media (hover: none) and (pointer: coarse) {
+  .page-img-wrap img { height: clamp(100px, 22vh, 160px); }
 }
-#close-btn:hover { border-color: var(--gold); color: var(--gold); }
 
 /* ─── RESPONSIVE ─────────────────────────────────────────────── */
 @media (max-width: 400px) {
@@ -469,7 +488,10 @@ html, body {
 
   <!-- VIEWER -->
   <div id="viewer" class="hidden">
-    <div id="viewer-inner">
+  <!-- Golden X — fixed top-right, outside inner layout -->
+  <button id="close-btn" aria-label="Return to book">✕</button>
+
+  <div id="viewer-inner">
       <div id="pages-viewport">
         <div id="pages-track"></div>
       </div>
@@ -478,7 +500,6 @@ html, body {
         <div id="page-dots"></div>
         <button id="next-btn" class="nav-btn">&#8250;</button>
       </nav>
-      <button id="close-btn">↩ &nbsp; Return to the Book</button>
     </div>
   </div>
 </div>
