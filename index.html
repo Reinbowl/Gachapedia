@@ -24,6 +24,9 @@
   --ink2:        #3a2510;
   --fd: 'Cinzel', 'Palatino Linotype', serif;
   --fb: 'IM Fell English', Georgia, serif;
+  /* Book page dimensions */
+  --page-w: 182px;
+  --page-h: 258px;
 }
 
 html, body {
@@ -47,10 +50,11 @@ html, body {
 /* ─── SCENE ──────────────────────────────────────────────────── */
 #scene {
   display: flex; flex-direction: column;
-  align-items: center; gap: 2rem;
+  align-items: center; gap: 1.8rem;
   padding: 1.5rem 1rem;
-  max-width: 480px; width: 100%;
+  max-width: 520px; width: 100%;
 }
+#scene.hidden { display: none !important; }
 
 .site-header { text-align: center; }
 .header-rule {
@@ -72,128 +76,258 @@ html, body {
 
 /* ─── BOOK STAGE ─────────────────────────────────────────────── */
 #book-stage {
-  position: relative; width: 240px; height: 300px;
-  display: flex; align-items: center; justify-content: center;
-  perspective: 1400px;
+  position: relative;
+  perspective: 1200px;
+  perspective-origin: 50% 50%;
+  /* Width defined by book content via margin trick */
 }
 
+/* Ambient halo — centered on the cover position */
 .book-halo {
-  position: absolute; inset: -30px; border-radius: 50%;
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: calc(var(--page-w) + 80px);
+  height: calc(var(--page-h) + 80px);
+  border-radius: 50%;
   background: radial-gradient(ellipse at center,
-    rgba(201,162,39,.18) 0%, rgba(201,162,39,.06) 45%, transparent 70%);
+    rgba(201,162,39,.2) 0%, rgba(201,162,39,.07) 45%, transparent 70%);
   animation: halo-pulse 3.5s ease-in-out infinite;
   pointer-events: none;
+  z-index: 0;
+  transition: width 1.1s ease, height 1.1s ease;
+}
+#book.opening ~ .book-halo,
+.book-halo.spread {
+  width: calc(var(--page-w) * 2 + 80px);
 }
 @keyframes halo-pulse {
-  0%,100% { opacity:.7; transform: scale(1); }
-  50%      { opacity:1;  transform: scale(1.12); }
+  0%,100% { opacity: .7; transform: translate(-50%,-50%) scale(1); }
+  50%      { opacity: 1;  transform: translate(-50%,-50%) scale(1.1); }
 }
 
+/* ─── TWO-PAGE BOOK ──────────────────────────────────────────── */
+/*
+  Arcana layout:
+  - #book is 2×page-w wide
+  - margin-left: -page-w (closed) → 0 (open)
+  - This centers the cover (right half) when closed,
+    then reveals the full spread when opened.
+  - #cover-flap: the book cover, hinged at its left edge (the spine),
+    flips rotateY(-180deg) to reveal the inside cover / left page.
+  - .spread-right: the always-present right page, behind the cover.
+*/
 #book {
-  position: relative; width: 200px; height: 270px;
-  transform-style: preserve-3d;
+  position: relative;
+  width: calc(var(--page-w) * 2);
+  height: var(--page-h);
+  margin-left: calc(-1 * var(--page-w));
+  transition: margin-left 1.1s cubic-bezier(0.645, 0.045, 0.355, 1.000);
   animation: book-idle 5s ease-in-out infinite;
-  filter: drop-shadow(0 24px 48px rgba(0,0,0,.75));
+  filter: drop-shadow(0 22px 44px rgba(0,0,0,.8));
+  cursor: pointer;
+  user-select: none;
+  z-index: 1;
 }
+#book.opening {
+  animation: none;
+  margin-left: 0;
+}
+#book.busy { cursor: wait; }
+
 @keyframes book-idle {
-  0%,100% { transform: rotateY(-18deg) translateY(0); }
-  50%      { transform: rotateY(-12deg) translateY(-10px); }
+  0%,100% { transform: translateY(0); }
+  50%      { transform: translateY(-9px); }
 }
 
-.book-cover {
-  position: absolute; inset: 0;
-  border-radius: 4px 14px 14px 4px;
+/* ── Right spread page (content, always visible behind cover) ── */
+.spread-right {
+  position: absolute;
+  left: var(--page-w); top: 0;
+  width: var(--page-w); height: var(--page-h);
+  background: linear-gradient(to right, #f5ecd4 0%, #ede2c3 65%, #e0d4b0 100%);
+  border: 1px solid rgba(160,140,90,.3);
+  border-left: none;
+  border-radius: 0 4px 4px 0;
+  padding: 14px 13px 14px 18px;
+  overflow: hidden;
+  display: flex; flex-direction: column; gap: 5px;
+  box-shadow: 2px 6px 22px rgba(0,0,0,.45);
 }
-.front-cover {
+/* Gutter shadow (spine side) */
+.spread-right::before {
+  content: '';
+  position: absolute; top: 0; left: 0;
+  width: 14px; height: 100%;
+  background: linear-gradient(to right, rgba(80,50,15,.28), transparent);
+  pointer-events: none;
+}
+.spread-heading {
+  font-family: var(--fd);
+  font-size: .5rem; font-weight: 700; letter-spacing: .16em;
+  color: rgba(50,28,6,.65);
+  border-bottom: 1px solid rgba(120,85,30,.22);
+  padding-bottom: 5px; margin-bottom: 1px;
+  text-transform: uppercase;
+}
+.spread-para {
+  font-family: var(--fb);
+  font-style: italic;
+  font-size: .49rem; line-height: 1.62;
+  color: rgba(45,25,6,.52);
+}
+.spread-rule {
+  width: 100%; height: 1px;
+  background: rgba(120,85,30,.14);
+  margin: 1px 0; flex-shrink: 0;
+}
+
+/* ── Cover flap: right half, 3D flip ── */
+#cover-flap {
+  position: absolute;
+  left: var(--page-w); top: 0;
+  width: var(--page-w); height: var(--page-h);
+  transform-style: preserve-3d;
+  -webkit-transform-style: preserve-3d;
+  transform-origin: left center;
+  transition: transform 1.1s cubic-bezier(0.645, 0.045, 0.355, 1.000);
+  z-index: 10;
+}
+#book.opening #cover-flap {
+  transform: rotateY(-180deg);
+}
+
+/* Front face: the leather book cover */
+.flap-front {
+  position: absolute; inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
   background: linear-gradient(160deg,
     var(--leather-dk) 0%, var(--leather-md) 35%,
     var(--leather-lt) 60%, var(--leather-md) 80%, var(--leather-dk) 100%);
   border: 1.5px solid rgba(201,162,39,.45);
   box-shadow: inset 0 0 25px rgba(0,0,0,.45),
-    inset 3px 0 6px rgba(255,200,100,.08), 5px 0 18px rgba(0,0,0,.6);
+    inset 3px 0 6px rgba(255,200,100,.08), 4px 0 18px rgba(0,0,0,.65);
+  border-radius: 0 4px 4px 0;
   display: flex; align-items: center; justify-content: center;
-  transform-origin: left center; backface-visibility: hidden; z-index: 2;
+  transition: box-shadow .3s ease;
 }
-.back-cover {
-  background: linear-gradient(to right, #1a0704, #3d1507);
-  border-radius: 14px 4px 4px 14px; transform: translateZ(-10px); z-index: 0;
+#book:hover:not(.opening):not(.busy) .flap-front {
+  box-shadow: inset 0 0 25px rgba(0,0,0,.45),
+    inset 3px 0 6px rgba(255,200,100,.08),
+    4px 0 30px rgba(201,162,39,.38),
+    0 0 50px rgba(201,162,39,.16);
 }
 .cover-border {
-  width: calc(100% - 24px); height: calc(100% - 24px);
+  width: calc(100% - 22px); height: calc(100% - 22px);
   border: 1px solid rgba(201,162,39,.3);
   display: flex; flex-direction: column;
   align-items: center; justify-content: space-between;
   padding: 16px 12px;
 }
 .cover-ornament {
-  color: var(--gold); font-size: 1.4rem;
+  color: var(--gold); font-size: 1.35rem;
   text-shadow: 0 0 12px var(--gold); display: block;
 }
 .cover-title { display: flex; flex-direction: column; align-items: center; gap: 6px; }
 .cover-title-latin {
-  font-family: var(--fd); font-size: .75rem; font-weight: 700;
+  font-family: var(--fd); font-size: .72rem; font-weight: 700;
   letter-spacing: .28em; color: var(--gold-lt);
   text-shadow: 0 0 8px var(--gold-glow);
 }
-.cover-title-latin.sub { font-size: .55rem; color: var(--gold); letter-spacing: .2em; }
+.cover-title-latin.sub { font-size: .52rem; color: var(--gold); letter-spacing: .2em; }
 
-.book-spine {
-  position: absolute; left: -16px; top: 0; width: 16px; height: 100%;
-  background: linear-gradient(to right, #200a02, var(--leather-dk), #3d1507);
-  border-radius: 4px 0 0 4px;
-  transform: rotateY(-90deg); transform-origin: right center;
-}
-.book-page-block {
-  position: absolute; right: -8px; top: 5px;
-  width: 10px; height: calc(100% - 10px);
-  background: repeating-linear-gradient(to bottom,
-    #f5ecd4 0px, #e8d8b0 1px, #f0e6cc 1px, #f0e6cc 3px);
-  border-radius: 0 2px 2px 0;
-  transform: rotateY(90deg); transform-origin: left center; z-index: 1;
-}
-
-/* ── Book opening — simple cover flip ── */
-#book.opening { animation: none !important; }
-
-#book.opening .front-cover {
-  animation: cover-open 0.9s cubic-bezier(.4,0,.2,1) forwards;
-}
-@keyframes cover-open {
-  0%   { transform: rotateY(0deg); }
-  100% { transform: rotateY(-162deg); }
-}
-
-#book.opening .book-page-block {
-  animation: pages-shrink .4s ease .5s forwards;
-}
-@keyframes pages-shrink { to { opacity:0; } }
-
-/* Book fades slightly so golden glow can shine through */
-#book.opening {
-  animation: none !important;
-  filter: drop-shadow(0 0 0px transparent);
-}
-
-/* Inner pages visible when cover opens */
-.book-inner-pages {
+/* Back face: inside cover — becomes the LEFT page when open */
+.flap-back {
   position: absolute; inset: 0;
-  border-radius: 2px 12px 12px 2px;
-  background: linear-gradient(to right, #f5ecd4 0%, #ede2c3 60%, #e0d4b0 100%);
-  z-index: 1;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transform: rotateY(-180deg);   /* hidden until parent flips */
+  background: linear-gradient(to right, #eae0c8, #f2e9d5);
+  border: 1px solid rgba(160,140,90,.3);
+  border-right: none;
+  border-radius: 4px 0 0 4px;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 12px; padding: 22px 18px;
+}
+/* Gutter shadow on right edge of inside-cover */
+.flap-back::after {
+  content: '';
+  position: absolute; top: 0; right: 0;
+  width: 12px; height: 100%;
+  background: linear-gradient(to left, rgba(80,50,15,.22), transparent);
+  pointer-events: none;
+}
+.back-sigil {
+  font-size: 1.6rem;
+  color: rgba(90,60,15,.25);
+  text-shadow: 0 0 8px rgba(160,120,40,.1);
+}
+.back-rule {
+  width: 55%; height: 1px;
+  background: linear-gradient(to right, transparent, rgba(100,75,30,.35), transparent);
+}
+.back-text {
+  font-family: var(--fb);
+  font-style: italic;
+  font-size: .62rem; letter-spacing: .18em;
+  color: rgba(55,35,10,.45);
+  text-align: center; text-transform: uppercase;
+  line-height: 2.1;
+}
+
+/* ── Center spine ── */
+.center-spine {
+  position: absolute;
+  left: calc(var(--page-w) - 2px); top: 0;
+  width: 4px; height: 100%;
+  background: linear-gradient(to right,
+    rgba(50,20,5,.55), rgba(90,55,15,.15), rgba(50,20,5,.45));
+  z-index: 20;
+  pointer-events: none;
+}
+
+/* ── Book click hint ── */
+#book-hint {
+  font-family: var(--fd); font-size: .62rem; letter-spacing: .16em;
+  color: rgba(201,162,39,.45);
+  animation: hint-pulse 3s ease-in-out infinite;
+  transition: opacity 0.4s ease;
+}
+@keyframes hint-pulse {
+  0%,100% { opacity: .45; }
+  50%      { opacity: .82; }
 }
 
 /* ─── SCRIBE SELECTOR ────────────────────────────────────────── */
+#controls { display: flex; flex-direction: column; align-items: center; }
+
 #scribe-selector {
   display: flex; flex-direction: column; align-items: center; gap: 6px;
   width: 100%;
 }
+/* Dot + label on one row */
+.selector-label-row {
+  display: flex; align-items: center; gap: 8px;
+}
+#model-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: #555; transition: background .4s; flex-shrink: 0;
+}
+#model-dot.loading { background: #e8922a; animation: dot-blink 1s infinite; }
+#model-dot.ready   { background: #5dba6e; box-shadow: 0 0 6px #5dba6e; }
+#model-dot.error   { background: #b94040; }
+@keyframes dot-blink { 0%,100% { opacity:1; } 50% { opacity:.25; } }
+
 #scribe-selector label {
   font-family: var(--fd); font-size: .7rem; letter-spacing: .14em;
   color: rgba(201,162,39,.7);
+  cursor: default;
 }
 .select-wrap {
   position: relative;
-  display: inline-flex; /* shrinks to content */
+  display: inline-flex;
 }
 #scribe-select {
   padding: 9px 36px 9px 14px;
@@ -218,53 +352,14 @@ html, body {
   min-height: 1em;
 }
 
-/* ─── CONTROLS ───────────────────────────────────────────────── */
-#controls { display: flex; flex-direction: column; align-items: center; gap: 1rem; }
-
-#pull-btn {
-  position: relative; padding: 13px 38px;
-  background: linear-gradient(135deg, #3d2200, #7a4c00, #3d2200);
-  border: 1.5px solid var(--gold); border-radius: 6px;
-  color: var(--gold-lt); font-family: var(--fd);
-  font-size: .95rem; letter-spacing: .07em;
-  cursor: pointer; overflow: hidden;
-  transition: box-shadow .3s, transform .2s;
-}
-#pull-btn:hover:not(:disabled) {
-  box-shadow: 0 0 22px var(--gold-glow), 0 0 50px rgba(201,162,39,.15);
-  transform: translateY(-2px);
-}
-#pull-btn:disabled { opacity:.6; cursor:not-allowed; }
-.btn-shimmer {
-  position: absolute; inset: 0;
-  background: radial-gradient(ellipse at 50% 50%, rgba(255,230,100,.12) 0%, transparent 70%);
-  animation: shimmer 2.5s ease-in-out infinite;
-}
-@keyframes shimmer { 0%,100% { opacity:.4; } 50% { opacity:1; } }
-
-#model-status {
-  display: flex; align-items: center; gap: 7px;
-  font-size: .78rem; color: rgba(210,185,130,.5); font-style: italic;
-}
-#model-dot {
-  width: 7px; height: 7px; border-radius: 50%;
-  background: #555; transition: background .4s; flex-shrink: 0;
-}
-#model-dot.loading { background: #e8922a; animation: dot-blink 1s infinite; }
-#model-dot.ready   { background: #5dba6e; box-shadow: 0 0 6px #5dba6e; }
-#model-dot.error   { background: #b94040; }
-@keyframes dot-blink { 0%,100% { opacity:1; } 50% { opacity:.25; } }
-
 /* ─── VIEWER ─────────────────────────────────────────────────── */
 #viewer {
   position: fixed; inset: 0; z-index: 20;
-  background: transparent;
   display: flex; align-items: center; justify-content: center;
   padding: env(safe-area-inset-top, 0.75rem) 1rem 1rem;
 }
 #viewer.hidden { display: none !important; }
 
-/* X close button — top-right corner of viewer */
 #close-btn {
   position: fixed; top: 14px; right: 14px; z-index: 30;
   width: 36px; height: 36px; border-radius: 50%;
@@ -280,7 +375,6 @@ html, body {
 #viewer-inner {
   width: 100%; max-width: 420px; height: 100%;
   display: flex; flex-direction: column; align-items: center; gap: 0.7rem;
-  /* account for the fixed X button at top */
   padding-top: 2.5rem;
 }
 
@@ -293,7 +387,6 @@ html, body {
   transition: transform .42s cubic-bezier(.25,.46,.45,.94);
 }
 
-/* Hide arrow nav buttons on touch devices — swipe is used instead */
 @media (hover: none) and (pointer: coarse) {
   .nav-btn { display: none; }
   #viewer-nav { gap: 0; }
@@ -313,7 +406,6 @@ html, body {
   height: 100%;
   background: #fffef8;
   border: 1.5px solid var(--gold);
-  /* Double border effect: card bg gap then second gold line */
   box-shadow:
     0 0 0 5px #fffef8,
     0 0 0 6.5px var(--gold),
@@ -324,9 +416,6 @@ html, body {
   display: flex; flex-direction: column; gap: 14px;
   color: var(--ink); overflow-y: auto; position: relative;
 }
-
-.page-paper::before { display: none; }
-.page-paper::after  { display: none; }
 
 .page-num {
   font-family: var(--fd); font-size: .65rem; letter-spacing: .18em;
@@ -345,22 +434,18 @@ html, body {
 .page-img-wrap {
   border: 1px solid rgba(201,162,39,.3); border-radius: 3px;
   flex-shrink: 0; align-self: center;
-  overflow: hidden;
-  background: transparent;
-  max-width: 100%;               /* never wider than the card */
+  overflow: hidden; background: transparent; max-width: 100%;
 }
 .page-img-wrap img {
   display: block;
   height: clamp(160px, 38vh, 260px);
-  width: auto;
-  max-width: 100%;               /* wide landscape images scale down to fit */
+  width: auto; max-width: 100%;
 }
 
-/* padding-left removed — no more margin line to clear */
 .page-text { font-size: .98rem; line-height: 1.75; color: var(--ink2); flex: 1; position: relative; z-index: 1; }
 .page-text.loading-text { color: rgba(80,50,20,.4); font-style: italic; text-align: center; padding-top: 1rem; }
 .thinking-dots::after { content: ''; animation: thinking 1.4s steps(4, end) infinite; }
-@keyframes thinking { 0%{content:'';} 25%{content:'.';} 50%{content:'..';} 75%{content:'...';}  }
+@keyframes thinking { 0%{content:'';} 25%{content:'.';} 50%{content:'..';} 75%{content:'...';} }
 
 .page-insight {
   background: rgba(160,120,50,.1); border-left: 2px solid rgba(160,120,50,.4);
@@ -369,7 +454,6 @@ html, body {
 }
 .page-insight strong { font-style: normal; color: var(--ink); font-family: var(--fd); font-size: .72rem; letter-spacing: .08em; }
 
-/* margin-top: auto pushes the link to the bottom; overflow visible so it never clips */
 .page-link {
   text-align: center; font-size: .78rem; padding-top: 6px;
   border-top: 1px solid rgba(160,120,50,.2); flex-shrink: 0;
@@ -413,16 +497,9 @@ html, body {
 }
 .page-dot.active { background: var(--gold); box-shadow: 0 0 7px var(--gold-glow); }
 
-/* Mobile — smaller image so text fits without scrolling */
 @media (hover: none) and (pointer: coarse) {
   .page-img-wrap img { height: clamp(100px, 22vh, 160px); }
-}
-
-/* ─── RESPONSIVE ─────────────────────────────────────────────── */
-@media (max-width: 400px) {
-  #book { width: 170px; height: 230px; }
-  #book-stage { width: 200px; height: 260px; }
-  #pull-btn { padding: 11px 28px; font-size: .85rem; }
+  :root { --page-w: 148px; --page-h: 210px; }
 }
   </style>
 </head>
@@ -439,59 +516,83 @@ html, body {
       <div class="header-rule"></div>
     </header>
 
+    <!-- BOOK STAGE: perspective wrapper, width adapts to book content -->
     <div id="book-stage">
       <div class="book-halo"></div>
-      <div id="book">
-        <div class="book-cover front-cover">
-          <div class="cover-border">
-            <span class="cover-ornament">⁂</span>
-            <div class="cover-title">
-              <span class="cover-title-latin">WIKIPEDIA</span>
-              <span class="cover-title-latin sub">LEXICA</span>
-            </div>
-            <span class="cover-ornament">⁂</span>
-          </div>
-        </div>
-        <div class="book-cover back-cover"></div>
-        <div class="book-inner-pages"></div>
-        <div class="book-spine"></div>
-        <div class="book-page-block"></div>
-      </div>
 
-    </div>
+      <div id="book">
+
+        <!-- Right page: always present, behind the cover -->
+        <div class="spread-right">
+          <div class="spread-heading">Encyclopædia Universalis · Vol. I</div>
+          <p class="spread-para">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam exercitation.</p>
+          <div class="spread-rule"></div>
+          <p class="spread-para">Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident.</p>
+          <div class="spread-rule"></div>
+          <p class="spread-para">Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam eaque ipsa quae ab inventore veritatis.</p>
+          <div class="spread-rule"></div>
+          <p class="spread-para">Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione sequi nesciunt omnis.</p>
+          <div class="spread-rule"></div>
+          <p class="spread-para">Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur adipisci velit, sed quia non numquam eius modi tempora incidunt labore.</p>
+        </div>
+
+        <!-- Cover flap: hinges at spine (left edge), flips open to the left -->
+        <div id="cover-flap">
+
+          <!-- Front face: leather book cover -->
+          <div class="flap-front">
+            <div class="cover-border">
+              <span class="cover-ornament">⁂</span>
+              <div class="cover-title">
+                <span class="cover-title-latin">WIKIPEDIA</span>
+                <span class="cover-title-latin sub">LEXICA</span>
+              </div>
+              <span class="cover-ornament">⁂</span>
+            </div>
+          </div>
+
+          <!-- Back face: inside cover — revealed as left page when open -->
+          <div class="flap-back">
+            <div class="back-sigil">◈</div>
+            <div class="back-rule"></div>
+            <div class="back-text">Here begins<br/>the repository<br/>of all knowledge</div>
+            <div class="back-rule"></div>
+          </div>
+
+        </div>
+
+        <!-- Centre spine crease -->
+        <div class="center-spine"></div>
+
+      </div><!-- /#book -->
+    </div><!-- /#book-stage -->
+
+    <p id="book-hint">✦ &nbsp; Click the book to reveal &nbsp; ✦</p>
 
     <div id="controls">
-      <!-- Scribe selector -->
       <div id="scribe-selector">
         <label for="scribe-select">✦ &nbsp; Choose your Scribe</label>
-        <div class="select-wrap">
-          <select id="scribe-select">
-            <option value="none" selected>📜 &nbsp; Swift Scribe</option>
-            <option value="small">🪶 &nbsp; Apprentice Scribe</option>
-            <option value="full">📖 &nbsp; Master Scribe</option>
-          </select>
-          <span class="select-arrow">▾</span>
+        <!-- Dot left of the dropdown -->
+        <div class="selector-label-row">
+          <span id="model-dot" class="loading"></span>
+          <div class="select-wrap">
+            <select id="scribe-select">
+              <option value="none" selected>📜 &nbsp; Swift Scribe</option>
+              <option value="small">🪶 &nbsp; Apprentice Scribe</option>
+              <option value="full">📖 &nbsp; Master Scribe</option>
+            </select>
+            <span class="select-arrow">▾</span>
+          </div>
         </div>
         <p id="scribe-hint">Best quality summaries. Recommended for desktop.</p>
-      </div>
-
-      <button id="pull-btn">
-        <span class="btn-shimmer"></span>
-        <span class="btn-label">✨ &nbsp; Open the Book &nbsp; ✨</span>
-      </button>
-      <div id="model-status">
-        <span id="model-dot" class="loading"></span>
-        <span id="model-label">Loading scribe…</span>
       </div>
     </div>
   </div>
 
   <!-- VIEWER -->
   <div id="viewer" class="hidden">
-  <!-- Golden X — fixed top-right, outside inner layout -->
-  <button id="close-btn" aria-label="Return to book">✕</button>
-
-  <div id="viewer-inner">
+    <button id="close-btn" aria-label="Return to book">✕</button>
+    <div id="viewer-inner">
       <div id="pages-viewport">
         <div id="pages-track"></div>
       </div>
@@ -507,23 +608,15 @@ html, body {
 <script type="module">
 // ═══════════════════════════════════════════════════════════════
 // WORKER BRIDGE
-// All LLM work runs in worker.js off the main thread.
-// The main thread only holds lightweight promise resolvers.
 // ═══════════════════════════════════════════════════════════════
-
-// pending summarise promises: id → { resolve, gen }
 const pending = new Map();
-let generation  = 0;
-let scribeMode  = 'full'; // 'none' | 'small' | 'full'
+let generation = 0;
+let scribeMode = 'full';
 
 const HINTS = {
   none:  'Fastest scribe in the south.',
   small: 'Still learning the ropes.',
   full:  'Old but wise.',
-};
-const MODELS = {
-  small: 'Xenova/distilbart-cnn-6-6',  // ~50MB q8
-  full:  'Xenova/distilbart-cnn-6-6',  // same model, kept separate for future swap
 };
 
 const worker = new Worker('./worker.js', { type: 'module' });
@@ -531,16 +624,13 @@ const worker = new Worker('./worker.js', { type: 'module' });
 worker.addEventListener('message', ({ data }) => {
   switch (data.type) {
     case 'progress':
-      modelDot.className     = 'loading';
-      modelLabel.textContent = `Loading scribe — ${data.pct}%`;
+      modelDot.className = 'loading';
       break;
     case 'ready':
-      modelDot.className     = 'ready';
-      modelLabel.textContent = 'Scribe ready ✓';
+      modelDot.className = 'ready';
       break;
     case 'error':
-      modelDot.className     = 'error';
-      modelLabel.textContent = 'Scribe unavailable — using excerpts';
+      modelDot.className = 'error';
       break;
     case 'summary': {
       const p = pending.get(data.id);
@@ -551,10 +641,7 @@ worker.addEventListener('message', ({ data }) => {
 });
 
 function summarise(id, extract) {
-  // 'none' mode — resolve immediately with truncated extract, no worker call
-  if (scribeMode === 'none') {
-    return Promise.resolve(smartTrunc(extract, 320));
-  }
+  if (scribeMode === 'none') return Promise.resolve(smartTrunc(extract, 320));
   return new Promise(resolve => {
     const fallback = smartTrunc(extract, 320);
     pending.set(id, { resolve, gen: generation });
@@ -587,84 +674,77 @@ async function fetchArticle(retries = 4) {
   }
   const r = await fetch('https://en.wikipedia.org/api/rest_v1/page/random/summary', { cache: 'no-store' });
   const d = await r.json();
-  return { title: d.title || 'Unknown', description: d.description || '',
-           extract: (d.extract || 'No information found.').trim(),
-           image: d.thumbnail?.source ?? null, url: d.content_urls?.desktop?.page ?? '' };
+  return { title: d.title||'Unknown', description: d.description||'',
+           extract: (d.extract||'No information found.').trim(),
+           image: d.thumbnail?.source??null, url: d.content_urls?.desktop?.page??'' };
 }
 
 async function fetchArticles(n = 5) {
   const settled = await Promise.allSettled(Array.from({ length: n }, fetchArticle));
   return settled.map((r, i) =>
     r.status === 'fulfilled' ? r.value
-      : { title: `Page ${i+1}`, description: '', extract: 'Lost to time…', image: null, url: '' });
+      : { title:`Page ${i+1}`, description:'', extract:'Lost to time…', image:null, url:'' });
 }
 
 // ═══════════════════════════════════════════════════════════════
 // DOM REFS
 // ═══════════════════════════════════════════════════════════════
-const bookEl     = document.getElementById('book');
-const pullBtn    = document.getElementById('pull-btn');
-const btnLabel   = pullBtn.querySelector('.btn-label');
-const modelDot   = document.getElementById('model-dot');
-const modelLabel = document.getElementById('model-label');
-const scribeSel  = document.getElementById('scribe-select');
-const scribeHint = document.getElementById('scribe-hint');
-const scene      = document.getElementById('scene');
-const viewer     = document.getElementById('viewer');
-const track      = document.getElementById('pages-track');
-const dotsEl     = document.getElementById('page-dots');
-const prevBtn    = document.getElementById('prev-btn');
-const nextBtn    = document.getElementById('next-btn');
-const closeBtn   = document.getElementById('close-btn');
-const viewport   = document.getElementById('pages-viewport');
+const bookEl    = document.getElementById('book');
+const bookHint  = document.getElementById('book-hint');
+const modelDot  = document.getElementById('model-dot');
+const scribeSel = document.getElementById('scribe-select');
+const scribeHint= document.getElementById('scribe-hint');
+const scene     = document.getElementById('scene');
+const viewer    = document.getElementById('viewer');
+const track     = document.getElementById('pages-track');
+const dotsEl    = document.getElementById('page-dots');
+const prevBtn   = document.getElementById('prev-btn');
+const nextBtn   = document.getElementById('next-btn');
+const closeBtn  = document.getElementById('close-btn');
+const viewport  = document.getElementById('pages-viewport');
 
 let articles = [], idx = 0, dragX = 0, dragging = false;
+let isOpening = false;
 
 // ═══════════════════════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════════════════════
 initStarfield();
 
-// Default to 'small' on mobile to avoid crashes
 function applyScribeChoice(val) {
   scribeMode = val;
   scribeHint.textContent = HINTS[val];
   if (val === 'none') {
-    modelDot.className     = 'ready';
-    modelLabel.textContent = 'No scribe — using excerpts';
+    modelDot.className = 'ready';
   } else {
-    // Load the chosen model (worker ignores if already loaded with same model)
-    modelDot.className     = 'loading';
-    modelLabel.textContent = 'Loading scribe…';
+    modelDot.className = 'loading';
     worker.postMessage({ type: 'load', model: val });
   }
 }
-
-// Apply initial choice
 applyScribeChoice(scribeSel.value);
-
-// Update when user changes selection
 scribeSel.addEventListener('change', () => applyScribeChoice(scribeSel.value));
 
-pullBtn.addEventListener('click', openBook);
-prevBtn.addEventListener('click', () => goTo(idx - 1));
-nextBtn.addEventListener('click', () => goTo(idx + 1));
+// ── Book click ──
+bookEl.addEventListener('click', () => {
+  if (isOpening) return;
+  openBook();
+});
+
+prevBtn.addEventListener('click',  () => goTo(idx - 1));
+nextBtn.addEventListener('click',  () => goTo(idx + 1));
 closeBtn.addEventListener('click', closeViewer);
 
-// Touch swipe
 viewport.addEventListener('touchstart', e => { dragX = e.touches[0].clientX; }, { passive: true });
 viewport.addEventListener('touchend',   e => {
   const dx = e.changedTouches[0].clientX - dragX;
   if (Math.abs(dx) > 45) goTo(dx < 0 ? idx + 1 : idx - 1);
 });
-// Mouse drag
 viewport.addEventListener('mousedown', e => { dragging = true; dragX = e.clientX; });
 window.addEventListener('mouseup', e => {
   if (!dragging) return; dragging = false;
   const dx = e.clientX - dragX;
   if (Math.abs(dx) > 45) goTo(dx < 0 ? idx + 1 : idx - 1);
 });
-// Keyboard
 document.addEventListener('keydown', e => {
   if (viewer.classList.contains('hidden')) return;
   if (e.key === 'ArrowRight') goTo(idx + 1);
@@ -676,26 +756,39 @@ document.addEventListener('keydown', e => {
 // OPEN BOOK
 // ═══════════════════════════════════════════════════════════════
 async function openBook() {
-  pullBtn.disabled = true;
-  generation++;                      // invalidates any in-flight summaries from last pull
-  setLabel('📜 &nbsp; Consulting the archives…');
+  isOpening = true;
+  bookEl.classList.add('busy');
+  bookHint.style.opacity = '0';
+  bookHint.style.pointerEvents = 'none';
 
+  // 1. Start the book-open CSS transition immediately — no waiting for fetch.
+  bookEl.classList.add('opening');
+  const bookOpenMs = 1150; // matches the CSS transition duration
+  const flipDone   = new Promise(r => setTimeout(r, bookOpenMs));
+
+  // 2. Fetch articles in parallel while the book flips open.
   let fetched;
   try { fetched = await fetchArticles(5); }
   catch (err) {
     console.error(err);
-    setLabel('✨ &nbsp; Open the Book &nbsp; ✨');
-    pullBtn.disabled = false;
+    bookEl.classList.remove('opening');
+    bookEl.classList.remove('busy');
+    bookHint.style.opacity = '';
+    bookHint.style.pointerEvents = '';
+    isOpening = false;
     alert('Could not reach Wikipedia. Check your connection.');
     return;
   }
 
   articles = fetched;
+  generation++;
   buildShells();
 
-  setLabel('📖 &nbsp; The book awakens…');
-  await animateOpen();
+  // 3. Wait for flip to finish (in case fetch was faster), then burst.
+  await flipDone;
+  await drawMagicLight(); // returns Promise that resolves when burst fades out
 
+  // 4. Swap scene → viewer and reveal pages.
   scene.classList.add('hidden');
   viewer.classList.remove('hidden');
   idx = 0;
@@ -706,27 +799,20 @@ async function openBook() {
     el.classList.add('revealed');
   });
 
-  // Send all 5 articles to the worker simultaneously — they run in order
-  // inside the worker but the main thread stays free the whole time.
   const summaryPromises = articles.map((art, i) => summarise(i, art.extract));
-
-  // Fill each page as its summary arrives (they resolve one by one)
   summaryPromises.forEach((p, i) => p.then(text => fillPage(i, text, null)));
 }
 
 // ═══════════════════════════════════════════════════════════════
 // PAGE BUILDING
 // ═══════════════════════════════════════════════════════════════
-
 function buildShells() {
   track.innerHTML = ''; dotsEl.innerHTML = '';
   articles.forEach((art, i) => {
     const page = document.createElement('div');
     page.className = 'torn-page';
-    // Build image section safely — never use inline onerror with single-quotes inside innerHTML
     let imgHtml = '';
     if (art.image) {
-      // Use a wrapper id so we can safely hide it on error via a global handler
       imgHtml = `<div class="page-img-wrap" id="piw-${i}">
         <img src="${esc(art.image)}" alt="${esc(art.title)}" loading="lazy"/>
       </div>`;
@@ -749,7 +835,6 @@ function buildShells() {
       </div>`;
     track.appendChild(page);
 
-    // Attach error handler after DOM insertion so we avoid innerHTML quoting issues
     if (art.image) {
       const imgEl  = page.querySelector('img');
       const wrapEl = page.querySelector(`#piw-${i}`);
@@ -779,18 +864,10 @@ function fillPage(i, summary, insight) {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// ANIMATION
+// ANIMATION — golden burst (returns Promise, resolves when done)
 // ═══════════════════════════════════════════════════════════════
-function animateOpen() {
-  return new Promise(resolve => {
-    bookEl.classList.add('opening');
-    setTimeout(() => drawMagicLight(), 700);
-    setTimeout(resolve, 2000);
-  });
-}
-
 function drawMagicLight() {
-  // Create canvas directly on body — bypasses any parent perspective/transform
+  return new Promise(resolve => {
   const canvas = document.createElement('canvas');
   canvas.style.cssText =
     'position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:50;';
@@ -799,29 +876,30 @@ function drawMagicLight() {
   const H = canvas.height = window.innerHeight;
   const ctx = canvas.getContext('2d');
 
-  // Vanishing point = center of the actual book element on screen
+  // At burst time the book is fully open and centred, so the spine is at viewport centre x.
+  // For y we measure the book element directly since it's not necessarily at viewport centre.
   const bookRect = bookEl.getBoundingClientRect();
-  const ox = bookRect.left + bookRect.width  / 2;
-  const oy = bookRect.top  + bookRect.height / 2;
+  const ox = window.innerWidth / 2;
+  const oy = bookRect.top + bookRect.height / 2;
 
   const startTime = performance.now();
-  const duration  = 1600;
+  const duration  = 1400;
 
-  const RAYS = Array.from({ length: 24 }, (_, i) => ({
-    angle: (i / 24) * Math.PI * 2 + (Math.random() - .5) * .18,
-    width: 3  + Math.random() * 14,
-    delay: Math.random() * .12,
-    speed: .7 + Math.random() * .3,
+  const RAYS = Array.from({ length: 20 }, (_, i) => ({
+    angle: (i / 20) * Math.PI * 2 + (Math.random() - .5) * .22,
+    width: 3  + Math.random() * 12,
+    delay: Math.random() * .14,
+    speed: .65 + Math.random() * .35,
   }));
 
-  const PARTICLES = Array.from({ length: 60 }, () => ({
+  const PARTICLES = Array.from({ length: 55 }, () => ({
     angle: Math.random() * Math.PI * 2,
-    born:  Math.random() * .25,
-    life:  .35 + Math.random() * .45,
-    r0:    1   + Math.random() * 2,
-    r1:    3   + Math.random() * 6,
-    dist0: 10  + Math.random() * 40,
-    dist1: Math.min(W, H) * (.4 + Math.random() * .5),
+    born:  Math.random() * .22,
+    life:  .3 + Math.random() * .5,
+    r0:    1  + Math.random() * 2,
+    r1:    3  + Math.random() * 6,
+    dist0: 8  + Math.random() * 35,
+    dist1: Math.min(W, H) * (.35 + Math.random() * .5),
   }));
 
   function ease(t) { return t < .5 ? 2*t*t : -1+(4-2*t)*t; }
@@ -830,9 +908,8 @@ function drawMagicLight() {
     const t = Math.min((now - startTime) / duration, 1);
     ctx.clearRect(0, 0, W, H);
 
-    // Central glow expanding outward
-    const glowR     = 40 + ease(t) * 220;
-    const glowAlpha = Math.sin(t * Math.PI) * .32;
+    const glowR     = 35 + ease(t) * 200;
+    const glowAlpha = Math.sin(t * Math.PI) * .28;
     const grd = ctx.createRadialGradient(ox, oy, 0, ox, oy, glowR);
     grd.addColorStop(0,   `rgba(255,220,90,${glowAlpha})`);
     grd.addColorStop(.35, `rgba(200,140,30,${glowAlpha * .5})`);
@@ -840,18 +917,17 @@ function drawMagicLight() {
     ctx.fillStyle = grd;
     ctx.beginPath(); ctx.arc(ox, oy, glowR, 0, Math.PI * 2); ctx.fill();
 
-    // Rays — trapezoid wedges zooming outward from book center
     const maxDist = Math.sqrt(W * W + H * H);
     RAYS.forEach(ray => {
       const rt = Math.max(0, (t - ray.delay) / ray.speed);
       if (rt <= 0) return;
       const progress = Math.min(rt, 1);
-      const alpha    = Math.sin(progress * Math.PI) * .42;
-      const tipDist  = maxDist * .65 * progress;
-      const baseDist = tipDist * .08;
+      const alpha    = Math.sin(progress * Math.PI) * .38;
+      const tipDist  = maxDist * .6 * progress;
+      const baseDist = tipDist * .07;
       const cos = Math.cos(ray.angle), sin = Math.sin(ray.angle);
       const perp = { x: -sin, y: cos };
-      const hBase = ray.width * .3, hTip = ray.width * progress * 2.5;
+      const hBase = ray.width * .3, hTip = ray.width * progress * 2.4;
       const g = ctx.createLinearGradient(ox, oy, ox + cos*tipDist, oy + sin*tipDist);
       g.addColorStop(0,  `rgba(255,235,130,${alpha})`);
       g.addColorStop(.5, `rgba(201,162,39,${alpha * .7})`);
@@ -864,11 +940,10 @@ function drawMagicLight() {
       ctx.closePath(); ctx.fillStyle = g; ctx.fill();
     });
 
-    // Particles — grow as they fly out (zoom-toward-viewer illusion)
     PARTICLES.forEach(p => {
       const pt = Math.max(0, (t - p.born) / p.life);
       if (pt <= 0 || pt > 1) return;
-      const alpha = Math.sin(pt * Math.PI) * .85;
+      const alpha = Math.sin(pt * Math.PI) * .8;
       const dist  = p.dist0 + (p.dist1 - p.dist0) * ease(pt);
       const r     = p.r0    + (p.r1    - p.r0)    * pt;
       const x = ox + Math.cos(p.angle) * dist;
@@ -886,10 +961,10 @@ function drawMagicLight() {
     });
 
     if (t < 1) requestAnimationFrame(draw);
-    else        canvas.remove(); // detach entirely when done
+    else        { canvas.remove(); resolve(); }
   }
-
   requestAnimationFrame(draw);
+  }); // end Promise
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -914,8 +989,10 @@ function closeViewer() {
   viewer.classList.add('hidden');
   scene.classList.remove('hidden');
   bookEl.classList.remove('opening');
-  pullBtn.disabled = false;
-  setLabel('✨ &nbsp; Open the Book &nbsp; ✨');
+  bookEl.classList.remove('busy');
+  bookHint.style.opacity = '';
+  bookHint.style.pointerEvents = '';
+  isOpening = false;
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -924,28 +1001,25 @@ function closeViewer() {
 function initStarfield() {
   const canvas = document.getElementById('bg-canvas');
   const ctx    = canvas.getContext('2d');
-  let   W = 0, H = 0;
+  let W = 0, H = 0;
 
-  // Slow drifting fog pools — warm amber/sepia tones
   const POOLS = [
-    { x:.15, y:.25, rx:.55, ry:.35, h:32,  s:55, l:18, a:.13, dx:.00012, dy:.00007 },
-    { x:.72, y:.60, rx:.50, ry:.30, h:24,  s:48, l:14, a:.11, dx:-.00009,dy:.00010 },
-    { x:.45, y:.80, rx:.65, ry:.28, h:38,  s:52, l:20, a:.10, dx:.00008, dy:-.00006 },
-    { x:.85, y:.15, rx:.40, ry:.32, h:28,  s:44, l:16, a:.09, dx:-.00011,dy:.00008 },
-    { x:.30, y:.55, rx:.45, ry:.25, h:20,  s:50, l:12, a:.08, dx:.00007, dy:.00009 },
+    { x:.15, y:.25, rx:.55, ry:.35, h:32, s:55, l:18, a:.13, dx:.00012, dy:.00007 },
+    { x:.72, y:.60, rx:.50, ry:.30, h:24, s:48, l:14, a:.11, dx:-.00009,dy:.00010 },
+    { x:.45, y:.80, rx:.65, ry:.28, h:38, s:52, l:20, a:.10, dx:.00008, dy:-.00006 },
+    { x:.85, y:.15, rx:.40, ry:.32, h:28, s:44, l:16, a:.09, dx:-.00011,dy:.00008 },
+    { x:.30, y:.55, rx:.45, ry:.25, h:20, s:50, l:12, a:.08, dx:.00007, dy:.00009 },
   ];
 
-  // Dust motes — tiny warm specks drifting slowly upward
   let motes = [];
   function makeMotes() {
     motes = Array.from({ length: 55 }, () => ({
-      x:  Math.random() * W,
-      y:  Math.random() * H,
-      r:  Math.random() * 1.1 + .3,
-      a:  Math.random() * .35 + .05,
+      x: Math.random() * W, y: Math.random() * H,
+      r: Math.random() * 1.1 + .3,
+      a: Math.random() * .35 + .05,
       da: (Math.random() * .004 + .001) * (Math.random() < .5 ? 1 : -1),
-      vy: -(Math.random() * .18 + .04),   // drift upward
-      vx:  (Math.random() - .5) * .06,    // slight horizontal waver
+      vy: -(Math.random() * .18 + .04),
+      vx:  (Math.random() - .5) * .06,
     }));
   }
 
@@ -955,61 +1029,42 @@ function initStarfield() {
     makeMotes();
   }
 
-  // Off-screen buffer for the slow fog layer (redrawn every ~3 frames)
-  let fogFrame = 0;
-
   function draw() {
     ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = '#0e0a06'; ctx.fillRect(0, 0, W, H);
 
-    // ── base — very dark warm brown, not cold blue ──
-    ctx.fillStyle = '#0e0a06';
-    ctx.fillRect(0, 0, W, H);
-
-    // ── subtle vignette — darken corners ──
     const vig = ctx.createRadialGradient(W*.5, H*.5, H*.15, W*.5, H*.5, H*.85);
     vig.addColorStop(0, 'transparent');
     vig.addColorStop(1, 'rgba(0,0,0,.55)');
     ctx.fillStyle = vig; ctx.fillRect(0, 0, W, H);
 
-    // ── drifting fog pools (amber/sepia) ──
     POOLS.forEach(p => {
-      // Drift slowly, wrap around
       p.x = (p.x + p.dx + 1) % 1;
       p.y = (p.y + p.dy + 1) % 1;
-
       const cx = p.x * W, cy = p.y * H;
       const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, p.rx * W);
-      g.addColorStop(0,   `hsla(${p.h},${p.s}%,${p.l}%,${p.a})`);
-      g.addColorStop(.5,  `hsla(${p.h},${p.s}%,${p.l}%,${p.a * .4})`);
-      g.addColorStop(1,   'transparent');
+      g.addColorStop(0,  `hsla(${p.h},${p.s}%,${p.l}%,${p.a})`);
+      g.addColorStop(.5, `hsla(${p.h},${p.s}%,${p.l}%,${p.a * .4})`);
+      g.addColorStop(1,  'transparent');
       ctx.fillStyle = g;
-      ctx.beginPath();
-      ctx.ellipse(cx, cy, p.rx * W, p.ry * H, 0, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.beginPath(); ctx.ellipse(cx, cy, p.rx*W, p.ry*H, 0, 0, Math.PI*2); ctx.fill();
     });
 
-    // ── candle glow — faint warm bloom bottom-centre, like a table lamp ──
     const glow = ctx.createRadialGradient(W*.5, H, 0, W*.5, H, H*.7);
-    glow.addColorStop(0,   'rgba(180,100,20,.09)');
-    glow.addColorStop(.4,  'rgba(140, 70,10,.05)');
-    glow.addColorStop(1,   'transparent');
+    glow.addColorStop(0,  'rgba(180,100,20,.09)');
+    glow.addColorStop(.4, 'rgba(140,70,10,.05)');
+    glow.addColorStop(1,  'transparent');
     ctx.fillStyle = glow; ctx.fillRect(0, 0, W, H);
 
-    // ── dust motes ──
     motes.forEach(m => {
       m.a += m.da;
       if (m.a > .4 || m.a < .03) m.da *= -1;
-      m.y += m.vy;
-      m.x += m.vx;
-      // wrap
-      if (m.y < -2)  m.y = H + 2;
-      if (m.x < -2)  m.x = W + 2;
+      m.y += m.vy; m.x += m.vx;
+      if (m.y < -2) m.y = H + 2;
+      if (m.x < -2) m.x = W + 2;
       if (m.x > W+2) m.x = -2;
-
-      ctx.beginPath();
-      ctx.arc(m.x, m.y, m.r, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(220,175,100,${m.a})`;
-      ctx.fill();
+      ctx.beginPath(); ctx.arc(m.x, m.y, m.r, 0, Math.PI*2);
+      ctx.fillStyle = `rgba(220,175,100,${m.a})`; ctx.fill();
     });
 
     requestAnimationFrame(draw);
@@ -1025,7 +1080,6 @@ function esc(s) {
     .replace(/&/g,'&amp;').replace(/</g,'&lt;')
     .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
-function setLabel(html) { btnLabel.innerHTML = html; }
 </script>
 </body>
 </html>
