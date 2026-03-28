@@ -360,26 +360,18 @@ html, body {
 }
 #viewer.hidden { display: none !important; }
 
-#close-btn {
-  position: fixed; top: 14px; right: 14px; z-index: 30;
-  width: 36px; height: 36px; border-radius: 50%;
-  border: 1.5px solid var(--gold);
-  background: rgba(14,10,6,.75);
-  color: var(--gold); font-size: 1.1rem; line-height: 1;
-  cursor: pointer; display: flex; align-items: center; justify-content: center;
-  transition: all .2s;
-  box-shadow: 0 0 10px rgba(0,0,0,.5);
-}
-#close-btn:hover { background: var(--gold-dim); box-shadow: 0 0 12px var(--gold-glow); }
-
 #viewer-inner {
-  width: 100%; max-width: 420px; height: 100%;
-  display: flex; flex-direction: column; align-items: center; gap: 0.7rem;
-  padding-top: 2.5rem;
+  width: 100%; max-width: 420px;
+  /* height:auto shrinks to content — dark area outside it triggers close */
+  display: flex; flex-direction: column; align-items: center;
+  padding: 1.25rem 0 0;
 }
 
 #pages-viewport {
-  width: 100%; flex: 1; overflow: hidden; cursor: grab; min-height: 0;
+  /* explicit height preserves card size without relying on flex:1 from parent */
+  width: 100%;
+  height: min(90vh, 640px);
+  overflow: hidden; cursor: default;
 }
 #pages-viewport:active { cursor: grabbing; }
 #pages-track {
@@ -387,15 +379,13 @@ html, body {
   transition: transform .42s cubic-bezier(.25,.46,.45,.94);
 }
 
-@media (hover: none) and (pointer: coarse) {
-  .nav-btn { display: none; }
-  #viewer-nav { gap: 0; }
-}
+/* touch: swipe to navigate */
 
 /* ─── AGED PARCHMENT CARD ────────────────────────────────────── */
 .torn-page {
   flex: 0 0 100%; height: 100%; padding: 6px 8px;
   opacity: 0; transform: translateY(28px) rotate(-1deg);
+  touch-action: pan-y;
 }
 .torn-page.revealed {
   animation: page-in .6s cubic-bezier(.34,1.56,.64,1) forwards;
@@ -415,6 +405,12 @@ html, body {
   padding: 22px 20px 16px;
   display: flex; flex-direction: column; gap: 14px;
   color: var(--ink); overflow-y: auto; position: relative;
+  touch-action: pan-y;
+  user-select: none; -webkit-user-select: none;
+}
+/* Holding 300ms without drag re-enables selection on the active card */
+.page-paper.selectable {
+  user-select: text; -webkit-user-select: text;
 }
 
 .page-num {
@@ -454,14 +450,6 @@ html, body {
 }
 .page-insight strong { font-style: normal; color: var(--ink); font-family: var(--fd); font-size: .72rem; letter-spacing: .08em; }
 
-.page-link {
-  text-align: center; font-size: .78rem; padding-top: 6px;
-  border-top: 1px solid rgba(160,120,50,.2); flex-shrink: 0;
-  margin-top: auto; overflow: visible;
-}
-.page-link a { color: #7a4010; text-decoration: none; letter-spacing: .04em; }
-.page-link a:hover { text-decoration: underline; }
-
 .page-img-placeholder {
   border: 1px dashed rgba(160,120,50,.35); border-radius: 3px;
   height: 90px; flex-shrink: 0;
@@ -477,25 +465,49 @@ html, body {
 .page-paper::-webkit-scrollbar { width: 3px; }
 .page-paper::-webkit-scrollbar-thumb { background: rgba(160,120,50,.3); border-radius: 2px; }
 
-/* ─── NAV ─────────────────────────────────────────────────────── */
-#viewer-nav { display: flex; align-items: center; gap: 18px; }
-.nav-btn {
-  width: 42px; height: 42px; border-radius: 50%;
-  border: 1.5px solid var(--gold); background: transparent;
-  color: var(--gold); font-size: 1.8rem; line-height: 1;
-  cursor: pointer; transition: all .2s;
-  display: flex; align-items: center; justify-content: center;
+/* ─── PAGE FOOTER NAV (inside the card) ──────────────────────── */
+.page-footer {
+  margin-top: auto;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  border-top: 1px solid rgba(160,120,50,.22);
+  padding-top: 9px;
+  flex-shrink: 0;
+  gap: 4px;
 }
-.nav-btn:hover:not(:disabled) { background: var(--gold-dim); box-shadow: 0 0 14px var(--gold-glow); }
-.nav-btn:disabled { opacity:.25; cursor:default; }
-
-#page-dots { display: flex; gap: 9px; }
-.page-dot {
-  width: 8px; height: 8px; border-radius: 50%;
-  border: 1.5px solid var(--gold); background: transparent;
-  cursor: pointer; padding: 0; transition: all .2s;
+.pg-prev, .pg-next {
+  background: none; border: none; padding: 4px 2px;
+  cursor: pointer;
+  font-family: var(--fb);
+  font-size: .72rem; font-style: italic;
+  letter-spacing: .06em;
+  color: rgba(80,50,15,.5);
+  display: flex; align-items: center; gap: 5px;
+  transition: color .18s;
+  line-height: 1;
 }
-.page-dot.active { background: var(--gold); box-shadow: 0 0 7px var(--gold-glow); }
+.pg-prev { justify-content: flex-start; }
+.pg-next { justify-content: flex-end; }
+.pg-prev:hover:not(:disabled), .pg-next:hover:not(:disabled) { color: rgba(60,30,5,.85); }
+.pg-prev:disabled, .pg-next:disabled { opacity: .2; cursor: default; }
+.pg-arrow {
+  font-style: normal;
+  font-size: 1.05rem;
+  color: rgba(120,80,25,.55);
+  transition: color .18s;
+  display: inline-block;
+  line-height: 1;
+}
+.pg-prev:hover:not(:disabled) .pg-arrow,
+.pg-next:hover:not(:disabled) .pg-arrow { color: rgba(80,45,8,.85); }
+.pg-wiki {
+  text-align: center; font-family: var(--fb);
+  font-size: .68rem; font-style: italic;
+  color: rgba(80,50,15,.45); letter-spacing: .04em; line-height: 1.3;
+}
+.pg-wiki a { color: rgba(100,55,12,.7); text-decoration: none; }
+.pg-wiki a:hover { text-decoration: underline; }
 
 @media (hover: none) and (pointer: coarse) {
   .page-img-wrap img { height: clamp(100px, 22vh, 160px); }
@@ -591,16 +603,11 @@ html, body {
 
   <!-- VIEWER -->
   <div id="viewer" class="hidden">
-    <button id="close-btn" aria-label="Return to book">✕</button>
     <div id="viewer-inner">
       <div id="pages-viewport">
         <div id="pages-track"></div>
       </div>
-      <nav id="viewer-nav">
-        <button id="prev-btn" class="nav-btn" disabled>&#8249;</button>
-        <div id="page-dots"></div>
-        <button id="next-btn" class="nav-btn">&#8250;</button>
-      </nav>
+
     </div>
   </div>
 </div>
@@ -697,13 +704,10 @@ const scribeHint= document.getElementById('scribe-hint');
 const scene     = document.getElementById('scene');
 const viewer    = document.getElementById('viewer');
 const track     = document.getElementById('pages-track');
-const dotsEl    = document.getElementById('page-dots');
-const prevBtn   = document.getElementById('prev-btn');
-const nextBtn   = document.getElementById('next-btn');
-const closeBtn  = document.getElementById('close-btn');
-const viewport  = document.getElementById('pages-viewport');
+const viewerInner = document.getElementById('viewer-inner');
+const viewport    = document.getElementById('pages-viewport');
 
-let articles = [], idx = 0, dragX = 0, dragging = false;
+let articles = [], idx = 0;
 let isOpening = false;
 
 // ═══════════════════════════════════════════════════════════════
@@ -730,21 +734,128 @@ bookEl.addEventListener('click', () => {
   openBook();
 });
 
-prevBtn.addEventListener('click',  () => goTo(idx - 1));
-nextBtn.addEventListener('click',  () => goTo(idx + 1));
-closeBtn.addEventListener('click', closeViewer);
+// ══════════════════════════════════════════════════════════════
+// NAVIGATION — touch swipe + mouse drag + click-outside
+// ══════════════════════════════════════════════════════════════
+//
+// Touch (mobile):
+//   • Horizontal swipe  → navigate pages  (JS, non-passive preventDefault)
+//   • Vertical swipe    → scroll card     (browser native via touch-action:pan-y)
+//   • Long press        → text selection  (browser native, we never block it)
+//
+// Mouse (desktop):
+//   • Horizontal drag   → navigate pages  (on mouseup, dx dominant)
+//   • Vertical drag     → scroll card     (live via scrollTop + movementY)
+//   • Hold ≥300 ms      → selection mode  (we step aside, browser selects)
+//   • Short click       → close backdrop  (click event fires normally)
+//
+// ── Touch ────────────────────────────────────────────────────
+let swipeTx = 0, swipeTy = 0, swipeAxis = null;
 
-viewport.addEventListener('touchstart', e => { dragX = e.touches[0].clientX; }, { passive: true });
-viewport.addEventListener('touchend',   e => {
-  const dx = e.changedTouches[0].clientX - dragX;
-  if (Math.abs(dx) > 45) goTo(dx < 0 ? idx + 1 : idx - 1);
+viewer.addEventListener('touchstart', e => {
+  swipeTx   = e.touches[0].clientX;
+  swipeTy   = e.touches[0].clientY;
+  swipeAxis = null;
+}, { passive: true });
+
+// Non-passive so we can preventDefault on horizontal swipes only
+viewer.addEventListener('touchmove', e => {
+  const dx = Math.abs(e.touches[0].clientX - swipeTx);
+  const dy = Math.abs(e.touches[0].clientY - swipeTy);
+  if (dx < 6 && dy < 6) return;                          // dead zone
+  if (swipeAxis === null) swipeAxis = dx > dy ? 'h' : 'v';
+  if (swipeAxis === 'h') e.preventDefault();              // block browser scroll on horiz
+  // 'v' falls through — touch-action:pan-y lets browser handle it natively
+}, { passive: false });
+
+viewer.addEventListener('touchend', e => {
+  if (swipeAxis !== 'h') return;
+  const dx = e.changedTouches[0].clientX - swipeTx;
+  if (Math.abs(dx) > 40) goTo(dx < 0 ? idx + 1 : idx - 1);
+}, { passive: true });
+
+// ── Mouse ────────────────────────────────────────────────────
+let mDown = false, mTx = 0, mTy = 0;
+let mAxis = null, mMoved = false, mHold = false, mHoldTimer = null;
+
+function currentPaper() {
+  return track.querySelectorAll('.page-paper')[idx] || null;
+}
+function clearSelectable() {
+  track.querySelectorAll('.page-paper.selectable').forEach(p => p.classList.remove('selectable'));
+}
+
+viewer.addEventListener('mousedown', e => {
+  if (e.button !== 0) return;
+  // Always preventDefault to block instant text-selection on drag.
+  // After 300 ms hold we re-enable it via .selectable class + synthetic event.
+  e.preventDefault();
+  mDown  = true;
+  mTx    = e.clientX;
+  mTy    = e.clientY;
+  mAxis  = null;
+  mMoved = false;
+  mHold  = false;
+  clearSelectable();
+  clearTimeout(mHoldTimer);
+  mHoldTimer = setTimeout(() => {
+    if (mMoved) return; // moved before timer — it's a drag, not a hold
+    mHold = true;
+    const paper = currentPaper();
+    if (!paper) return;
+    // Re-enable selection on the active card…
+    paper.classList.add('selectable');
+    // …then fire a synthetic mousedown so the browser can start selecting
+    // from the held position (the real mousedown was preventDefault'd)
+    paper.dispatchEvent(new MouseEvent('mousedown', {
+      bubbles: true, cancelable: true,
+      clientX: mTx, clientY: mTy, button: 0
+    }));
+  }, 300);
 });
-viewport.addEventListener('mousedown', e => { dragging = true; dragX = e.clientX; });
+
+window.addEventListener('mousemove', e => {
+  if (!mDown || mHold) return;
+  const dx = e.clientX - mTx;
+  const dy = e.clientY - mTy;
+  if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+  if (!mMoved) {
+    mMoved = true;
+    clearTimeout(mHoldTimer);
+    mAxis = Math.abs(dx) > Math.abs(dy) ? 'h' : 'v';
+  }
+  if (mAxis === 'h') {
+    viewer.style.cursor = 'grabbing';
+  } else if (mAxis === 'v') {
+    const paper = currentPaper();
+    if (paper) paper.scrollTop -= e.movementY;
+    viewer.style.cursor = 'ns-resize';
+  }
+});
+
 window.addEventListener('mouseup', e => {
-  if (!dragging) return; dragging = false;
-  const dx = e.clientX - dragX;
-  if (Math.abs(dx) > 45) goTo(dx < 0 ? idx + 1 : idx - 1);
+  if (!mDown) return;
+  mDown = false;
+  clearTimeout(mHoldTimer);
+  viewer.style.cursor = '';
+  if (!mHold && mAxis === 'h') {
+    const dx = e.clientX - mTx;
+    if (Math.abs(dx) > 40) goTo(dx < 0 ? idx + 1 : idx - 1);
+  }
+  // On mouseup after a hold, leave .selectable so user can still drag to extend selection.
+  // Clear it on next mousedown (above).
+  mAxis  = null;
+  mMoved = false;
+  mHold  = false;
 });
+
+// ── Click backdrop to close ───────────────────────────────────
+// Browser suppresses 'click' after a touchmove, so swipes never
+// accidentally trigger this.
+viewer.addEventListener('click', e => {
+  if (!e.target.closest('#viewer-inner')) closeViewer();
+});
+
 document.addEventListener('keydown', e => {
   if (viewer.classList.contains('hidden')) return;
   if (e.key === 'ArrowRight') goTo(idx + 1);
@@ -807,7 +918,8 @@ async function openBook() {
 // PAGE BUILDING
 // ═══════════════════════════════════════════════════════════════
 function buildShells() {
-  track.innerHTML = ''; dotsEl.innerHTML = '';
+  track.innerHTML = '';
+  const n = articles.length;
   articles.forEach((art, i) => {
     const page = document.createElement('div');
     page.className = 'torn-page';
@@ -822,18 +934,32 @@ function buildShells() {
         <span class="pip-label">${esc(art.title.charAt(0).toUpperCase())}</span>
       </div>`;
     }
+    const wikiLink = art.url
+      ? `<a href="${esc(art.url)}" target="_blank" rel="noopener">Wikipedia ↗</a>` : '';
     page.innerHTML = `
       <div class="page-paper">
-        <span class="page-num">— Page ${i+1} of 5 —</span>
+        <span class="page-num">— Page ${i+1} of ${n} —</span>
         <h2 class="page-title">${esc(art.title)}</h2>
         ${art.description ? `<p class="page-desc">${esc(art.description)}</p>` : ''}
         <div class="page-divider"></div>
         ${imgHtml}
         <p class="page-text loading-text thinking-dots" id="pt-${i}">The ancient scribes are transcribing</p>
         <div class="page-insight" id="pi-${i}" style="display:none"></div>
-        ${art.url ? `<div class="page-link"><a href="${esc(art.url)}" target="_blank" rel="noopener">Read on Wikipedia ↗</a></div>` : ''}
+        <div class="page-footer">
+          <button class="pg-prev"${i === 0 ? ' disabled' : ''}>
+            <span class="pg-arrow">&#10096;</span><span>Prev</span>
+          </button>
+          <div class="pg-wiki">${wikiLink}</div>
+          <button class="pg-next"${i === n-1 ? ' disabled' : ''}>
+            <span>Next</span><span class="pg-arrow">&#10097;</span>
+          </button>
+        </div>
       </div>`;
     track.appendChild(page);
+
+    // Wire footer buttons
+    page.querySelector('.pg-prev').addEventListener('click', e => { e.stopPropagation(); goTo(i - 1); });
+    page.querySelector('.pg-next').addEventListener('click', e => { e.stopPropagation(); goTo(i + 1); });
 
     if (art.image) {
       const imgEl  = page.querySelector('img');
@@ -847,12 +973,6 @@ function buildShells() {
         });
       }
     }
-
-    const dot = document.createElement('button');
-    dot.className = 'page-dot' + (i === 0 ? ' active' : '');
-    dot.setAttribute('aria-label', `Page ${i+1}`);
-    dot.addEventListener('click', () => goTo(i));
-    dotsEl.appendChild(dot);
   });
 }
 
@@ -978,13 +1098,8 @@ function updateTrack(anim) {
   track.style.transition = anim ? 'transform .42s cubic-bezier(.25,.46,.45,.94)' : 'none';
   track.style.transform  = `translateX(${-idx * 100}%)`;
 }
-function updateDots() {
-  dotsEl.querySelectorAll('.page-dot').forEach((d, i) => d.classList.toggle('active', i === idx));
-}
-function updateNavBtns() {
-  prevBtn.disabled = idx === 0;
-  nextBtn.disabled = idx === articles.length - 1;
-}
+function updateDots() { /* dots removed */ }
+function updateNavBtns() { /* per-card buttons are statically set */ }
 function closeViewer() {
   viewer.classList.add('hidden');
   scene.classList.remove('hidden');
