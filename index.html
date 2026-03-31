@@ -19,12 +19,10 @@
   --leather-dk:  #2d0f05;
   --leather-md:  #5a1e08;
   --leather-lt:  #8b3810;
-  --parchment:   #f5ecd4;
   --ink:         #1a0f02;
   --ink2:        #3a2510;
   --fd: 'Cinzel', 'Palatino Linotype', serif;
   --fb: 'IM Fell English', Georgia, serif;
-  /* Book page dimensions */
   --page-w: 182px;
   --page-h: 258px;
 }
@@ -79,10 +77,8 @@ html, body {
   position: relative;
   perspective: 1200px;
   perspective-origin: 50% 50%;
-  /* Width defined by book content via margin trick */
 }
 
-/* Ambient halo — centered on the cover position */
 .book-halo {
   position: absolute;
   top: 50%; left: 50%;
@@ -95,11 +91,6 @@ html, body {
   animation: halo-pulse 3.5s ease-in-out infinite;
   pointer-events: none;
   z-index: 0;
-  transition: width 1.1s ease, height 1.1s ease;
-}
-#book.opening ~ .book-halo,
-.book-halo.spread {
-  width: calc(var(--page-w) * 2 + 80px);
 }
 @keyframes halo-pulse {
   0%,100% { opacity: .7; transform: translate(-50%,-50%) scale(1); }
@@ -107,16 +98,6 @@ html, body {
 }
 
 /* ─── TWO-PAGE BOOK ──────────────────────────────────────────── */
-/*
-  Arcana layout:
-  - #book is 2×page-w wide
-  - margin-left: -page-w (closed) → 0 (open)
-  - This centers the cover (right half) when closed,
-    then reveals the full spread when opened.
-  - #cover-flap: the book cover, hinged at its left edge (the spine),
-    flips rotateY(-180deg) to reveal the inside cover / left page.
-  - .spread-right: the always-present right page, behind the cover.
-*/
 #book {
   position: relative;
   width: calc(var(--page-w) * 2);
@@ -140,7 +121,7 @@ html, body {
   50%      { transform: translateY(-9px); }
 }
 
-/* ── Right spread page (content, always visible behind cover) ── */
+/* ── Right spread page ── */
 .spread-right {
   position: absolute;
   left: var(--page-w); top: 0;
@@ -154,7 +135,6 @@ html, body {
   display: flex; flex-direction: column; gap: 5px;
   box-shadow: 2px 6px 22px rgba(0,0,0,.45);
 }
-/* Gutter shadow (spine side) */
 .spread-right::before {
   content: '';
   position: absolute; top: 0; left: 0;
@@ -182,7 +162,7 @@ html, body {
   margin: 1px 0; flex-shrink: 0;
 }
 
-/* ── Cover flap: right half, 3D flip ── */
+/* ── Cover flap ── */
 #cover-flap {
   position: absolute;
   left: var(--page-w); top: 0;
@@ -197,7 +177,6 @@ html, body {
   transform: rotateY(-180deg);
 }
 
-/* Front face: the leather book cover */
 .flap-front {
   position: absolute; inset: 0;
   backface-visibility: hidden;
@@ -237,12 +216,11 @@ html, body {
 }
 .cover-title-latin.sub { font-size: .52rem; color: var(--gold); letter-spacing: .2em; }
 
-/* Back face: inside cover — becomes the LEFT page when open */
 .flap-back {
   position: absolute; inset: 0;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
-  transform: rotateY(-180deg);   /* hidden until parent flips */
+  transform: rotateY(-180deg);
   background: linear-gradient(to right, #eae0c8, #f2e9d5);
   border: 1px solid rgba(160,140,90,.3);
   border-right: none;
@@ -251,7 +229,6 @@ html, body {
   align-items: center; justify-content: center;
   gap: 12px; padding: 22px 18px;
 }
-/* Gutter shadow on right edge of inside-cover */
 .flap-back::after {
   content: '';
   position: absolute; top: 0; right: 0;
@@ -262,7 +239,6 @@ html, body {
 .back-sigil {
   font-size: 1.6rem;
   color: rgba(90,60,15,.25);
-  text-shadow: 0 0 8px rgba(160,120,40,.1);
 }
 .back-rule {
   width: 55%; height: 1px;
@@ -277,7 +253,6 @@ html, body {
   line-height: 2.1;
 }
 
-/* ── Center spine ── */
 .center-spine {
   position: absolute;
   left: calc(var(--page-w) - 2px); top: 0;
@@ -307,7 +282,6 @@ html, body {
   display: flex; flex-direction: column; align-items: center; gap: 6px;
   width: 100%;
 }
-/* Dot + label on one row */
 .selector-label-row {
   display: flex; align-items: center; gap: 8px;
 }
@@ -362,30 +336,24 @@ html, body {
 
 #viewer-inner {
   width: 100%; max-width: 420px;
-  /* height:auto shrinks to content — dark area outside it triggers close */
   display: flex; flex-direction: column; align-items: center;
   padding: 1.25rem 0 0;
 }
 
 #pages-viewport {
-  /* explicit height preserves card size without relying on flex:1 from parent */
   width: 100%;
   height: min(90vh, 640px);
   overflow: hidden; cursor: default;
 }
-#pages-viewport:active { cursor: grabbing; }
 #pages-track {
   display: flex; height: 100%; will-change: transform;
   transition: transform .42s cubic-bezier(.25,.46,.45,.94);
 }
 
-/* touch: swipe to navigate */
-
-/* ─── AGED PARCHMENT CARD ────────────────────────────────────── */
+/* ─── PARCHMENT CARD ─────────────────────────────────────────── */
 .torn-page {
   flex: 0 0 100%; height: 100%; padding: 6px 8px;
   opacity: 0; transform: translateY(28px) rotate(-1deg);
-  touch-action: pan-y;
 }
 .torn-page.revealed {
   animation: page-in .6s cubic-bezier(.34,1.56,.64,1) forwards;
@@ -407,10 +375,6 @@ html, body {
   color: var(--ink); overflow-y: auto; position: relative;
   touch-action: pan-y;
   user-select: none; -webkit-user-select: none;
-}
-/* Holding 300ms without drag re-enables selection on the active card */
-.page-paper.selectable {
-  user-select: text; -webkit-user-select: text;
 }
 
 .page-num {
@@ -434,7 +398,7 @@ html, body {
 }
 .page-img-wrap img {
   display: block;
-  height: clamp(160px, 38vh, 260px);
+  height: clamp(120px, 29vh, 195px);
   width: auto; max-width: 100%;
 }
 
@@ -442,13 +406,6 @@ html, body {
 .page-text.loading-text { color: rgba(80,50,20,.4); font-style: italic; text-align: center; padding-top: 1rem; }
 .thinking-dots::after { content: ''; animation: thinking 1.4s steps(4, end) infinite; }
 @keyframes thinking { 0%{content:'';} 25%{content:'.';} 50%{content:'..';} 75%{content:'...';} }
-
-.page-insight {
-  background: rgba(160,120,50,.1); border-left: 2px solid rgba(160,120,50,.4);
-  padding: 8px 10px; font-style: italic; font-size: .85rem; color: rgba(80,50,15,.8);
-  border-radius: 0 3px 3px 0; flex-shrink: 0;
-}
-.page-insight strong { font-style: normal; color: var(--ink); font-family: var(--fd); font-size: .72rem; letter-spacing: .08em; }
 
 .page-img-placeholder {
   border: 1px dashed rgba(160,120,50,.35); border-radius: 3px;
@@ -465,7 +422,7 @@ html, body {
 .page-paper::-webkit-scrollbar { width: 3px; }
 .page-paper::-webkit-scrollbar-thumb { background: rgba(160,120,50,.3); border-radius: 2px; }
 
-/* ─── PAGE FOOTER NAV (inside the card) ──────────────────────── */
+/* ─── PAGE FOOTER NAV ────────────────────────────────────────── */
 .page-footer {
   margin-top: auto;
   display: grid;
@@ -496,7 +453,6 @@ html, body {
   font-size: 1.05rem;
   color: rgba(120,80,25,.55);
   transition: color .18s;
-  display: inline-block;
   line-height: 1;
 }
 .pg-prev:hover:not(:disabled) .pg-arrow,
@@ -519,7 +475,6 @@ html, body {
 <canvas id="bg-canvas"></canvas>
 
 <div id="app">
-  <!-- SCENE -->
   <div id="scene">
     <header class="site-header">
       <div class="header-rule"></div>
@@ -528,30 +483,23 @@ html, body {
       <div class="header-rule"></div>
     </header>
 
-    <!-- BOOK STAGE: perspective wrapper, width adapts to book content -->
     <div id="book-stage">
       <div class="book-halo"></div>
-
       <div id="book">
-
-        <!-- Right page: always present, behind the cover -->
         <div class="spread-right">
           <div class="spread-heading">Encyclopædia Universalis · Vol. I</div>
           <p class="spread-para">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam exercitation.</p>
           <div class="spread-rule"></div>
           <p class="spread-para">Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident.</p>
           <div class="spread-rule"></div>
-          <p class="spread-para">Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam eaque ipsa quae ab inventore veritatis.</p>
+          <p class="spread-para">Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam eaque ipsa quae ab inventore.</p>
           <div class="spread-rule"></div>
-          <p class="spread-para">Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione sequi nesciunt omnis.</p>
+          <p class="spread-para">Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit, sed quia consequuntur magni dolores eos qui ratione sequi nesciunt.</p>
           <div class="spread-rule"></div>
-          <p class="spread-para">Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur adipisci velit, sed quia non numquam eius modi tempora incidunt labore.</p>
+          <p class="spread-para">Neque porro quisquam est, qui dolorem ipsum quia dolor sit amet, consectetur adipisci velit, sed quia non numquam eius modi tempora incidunt.</p>
         </div>
 
-        <!-- Cover flap: hinges at spine (left edge), flips open to the left -->
         <div id="cover-flap">
-
-          <!-- Front face: leather book cover -->
           <div class="flap-front">
             <div class="cover-border">
               <span class="cover-ornament">⁂</span>
@@ -562,29 +510,23 @@ html, body {
               <span class="cover-ornament">⁂</span>
             </div>
           </div>
-
-          <!-- Back face: inside cover — revealed as left page when open -->
           <div class="flap-back">
             <div class="back-sigil">◈</div>
             <div class="back-rule"></div>
             <div class="back-text">Here begins<br/>the repository<br/>of all knowledge</div>
             <div class="back-rule"></div>
           </div>
-
         </div>
 
-        <!-- Centre spine crease -->
         <div class="center-spine"></div>
-
-      </div><!-- /#book -->
-    </div><!-- /#book-stage -->
+      </div>
+    </div>
 
     <p id="book-hint">✦ &nbsp; Click the book to reveal &nbsp; ✦</p>
 
     <div id="controls">
       <div id="scribe-selector">
         <label for="scribe-select">✦ &nbsp; Choose your Scribe</label>
-        <!-- Dot left of the dropdown -->
         <div class="selector-label-row">
           <span id="model-dot" class="loading"></span>
           <div class="select-wrap">
@@ -601,13 +543,11 @@ html, body {
     </div>
   </div>
 
-  <!-- VIEWER -->
   <div id="viewer" class="hidden">
     <div id="viewer-inner">
       <div id="pages-viewport">
         <div id="pages-track"></div>
       </div>
-
     </div>
   </div>
 </div>
@@ -630,15 +570,9 @@ const worker = new Worker('./worker.js', { type: 'module' });
 
 worker.addEventListener('message', ({ data }) => {
   switch (data.type) {
-    case 'progress':
-      modelDot.className = 'loading';
-      break;
-    case 'ready':
-      modelDot.className = 'ready';
-      break;
-    case 'error':
-      modelDot.className = 'error';
-      break;
+    case 'progress': modelDot.className = 'loading'; break;
+    case 'ready':    modelDot.className = 'ready';   break;
+    case 'error':    modelDot.className = 'error';   break;
     case 'summary': {
       const p = pending.get(data.id);
       if (p && p.gen === generation) { p.resolve(data.text); pending.delete(data.id); }
@@ -659,7 +593,7 @@ function summarise(id, extract) {
 function smartTrunc(text, max) {
   if (!text || text.length <= max) return text;
   const cut = text.slice(0, max), ls = cut.lastIndexOf(' ');
-  return (ls > max * .75 ? cut.slice(0, ls) : cut) + '…';
+  return (ls > max * .75 ? cut.slice(0, ls) : cut) + '\u2026';
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -681,31 +615,32 @@ async function fetchArticle(retries = 4) {
   }
   const r = await fetch('https://en.wikipedia.org/api/rest_v1/page/random/summary', { cache: 'no-store' });
   const d = await r.json();
-  return { title: d.title||'Unknown', description: d.description||'',
-           extract: (d.extract||'No information found.').trim(),
-           image: d.thumbnail?.source??null, url: d.content_urls?.desktop?.page??'' };
+  return {
+    title: d.title || 'Unknown', description: d.description || '',
+    extract: (d.extract || 'No information found.').trim(),
+    image: d.thumbnail?.source ?? null, url: d.content_urls?.desktop?.page ?? ''
+  };
 }
 
 async function fetchArticles(n = 5) {
   const settled = await Promise.allSettled(Array.from({ length: n }, fetchArticle));
   return settled.map((r, i) =>
     r.status === 'fulfilled' ? r.value
-      : { title:`Page ${i+1}`, description:'', extract:'Lost to time…', image:null, url:'' });
+      : { title: `Page ${i+1}`, description: '', extract: 'Lost to time\u2026', image: null, url: '' });
 }
 
 // ═══════════════════════════════════════════════════════════════
 // DOM REFS
 // ═══════════════════════════════════════════════════════════════
-const bookEl    = document.getElementById('book');
-const bookHint  = document.getElementById('book-hint');
-const modelDot  = document.getElementById('model-dot');
-const scribeSel = document.getElementById('scribe-select');
-const scribeHint= document.getElementById('scribe-hint');
-const scene     = document.getElementById('scene');
-const viewer    = document.getElementById('viewer');
-const track     = document.getElementById('pages-track');
+const bookEl      = document.getElementById('book');
+const bookHint    = document.getElementById('book-hint');
+const modelDot    = document.getElementById('model-dot');
+const scribeSel   = document.getElementById('scribe-select');
+const scribeHint  = document.getElementById('scribe-hint');
+const scene       = document.getElementById('scene');
+const viewer      = document.getElementById('viewer');
+const track       = document.getElementById('pages-track');
 const viewerInner = document.getElementById('viewer-inner');
-const viewport    = document.getElementById('pages-viewport');
 
 let articles = [], idx = 0;
 let isOpening = false;
@@ -734,22 +669,11 @@ bookEl.addEventListener('click', () => {
   openBook();
 });
 
-// ══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
 // NAVIGATION — touch swipe + mouse drag + click-outside
-// ══════════════════════════════════════════════════════════════
-//
-// Touch (mobile):
-//   • Horizontal swipe  → navigate pages  (JS, non-passive preventDefault)
-//   • Vertical swipe    → scroll card     (browser native via touch-action:pan-y)
-//   • Long press        → text selection  (browser native, we never block it)
-//
-// Mouse (desktop):
-//   • Horizontal drag   → navigate pages  (on mouseup, dx dominant)
-//   • Vertical drag     → scroll card     (live via scrollTop + movementY)
-//   • Hold ≥300 ms      → selection mode  (we step aside, browser selects)
-//   • Short click       → close backdrop  (click event fires normally)
-//
-// ── Touch ────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+
+// ── Touch ──
 let swipeTx = 0, swipeTy = 0, swipeAxis = null;
 
 viewer.addEventListener('touchstart', e => {
@@ -758,14 +682,12 @@ viewer.addEventListener('touchstart', e => {
   swipeAxis = null;
 }, { passive: true });
 
-// Non-passive so we can preventDefault on horizontal swipes only
 viewer.addEventListener('touchmove', e => {
   const dx = Math.abs(e.touches[0].clientX - swipeTx);
   const dy = Math.abs(e.touches[0].clientY - swipeTy);
-  if (dx < 6 && dy < 6) return;                          // dead zone
+  if (dx < 6 && dy < 6) return;
   if (swipeAxis === null) swipeAxis = dx > dy ? 'h' : 'v';
-  if (swipeAxis === 'h') e.preventDefault();              // block browser scroll on horiz
-  // 'v' falls through — touch-action:pan-y lets browser handle it natively
+  if (swipeAxis === 'h') e.preventDefault();
 }, { passive: false });
 
 viewer.addEventListener('touchend', e => {
@@ -774,54 +696,30 @@ viewer.addEventListener('touchend', e => {
   if (Math.abs(dx) > 40) goTo(dx < 0 ? idx + 1 : idx - 1);
 }, { passive: true });
 
-// ── Mouse ────────────────────────────────────────────────────
-let mDown = false, mTx = 0, mTy = 0;
-let mAxis = null, mMoved = false, mHold = false, mHoldTimer = null;
+// ── Mouse drag ──
+let mDown = false, mTx = 0, mTy = 0, mAxis = null, mMoved = false;
 
 function currentPaper() {
   return track.querySelectorAll('.page-paper')[idx] || null;
 }
-function clearSelectable() {
-  track.querySelectorAll('.page-paper.selectable').forEach(p => p.classList.remove('selectable'));
-}
 
 viewer.addEventListener('mousedown', e => {
   if (e.button !== 0) return;
-  // Always preventDefault to block instant text-selection on drag.
-  // After 300 ms hold we re-enable it via .selectable class + synthetic event.
   e.preventDefault();
   mDown  = true;
   mTx    = e.clientX;
   mTy    = e.clientY;
   mAxis  = null;
   mMoved = false;
-  mHold  = false;
-  clearSelectable();
-  clearTimeout(mHoldTimer);
-  mHoldTimer = setTimeout(() => {
-    if (mMoved) return; // moved before timer — it's a drag, not a hold
-    mHold = true;
-    const paper = currentPaper();
-    if (!paper) return;
-    // Re-enable selection on the active card…
-    paper.classList.add('selectable');
-    // …then fire a synthetic mousedown so the browser can start selecting
-    // from the held position (the real mousedown was preventDefault'd)
-    paper.dispatchEvent(new MouseEvent('mousedown', {
-      bubbles: true, cancelable: true,
-      clientX: mTx, clientY: mTy, button: 0
-    }));
-  }, 300);
 });
 
 window.addEventListener('mousemove', e => {
-  if (!mDown || mHold) return;
+  if (!mDown) return;
   const dx = e.clientX - mTx;
   const dy = e.clientY - mTy;
   if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
   if (!mMoved) {
     mMoved = true;
-    clearTimeout(mHoldTimer);
     mAxis = Math.abs(dx) > Math.abs(dy) ? 'h' : 'v';
   }
   if (mAxis === 'h') {
@@ -836,26 +734,21 @@ window.addEventListener('mousemove', e => {
 window.addEventListener('mouseup', e => {
   if (!mDown) return;
   mDown = false;
-  clearTimeout(mHoldTimer);
   viewer.style.cursor = '';
-  if (!mHold && mAxis === 'h') {
+  if (mAxis === 'h') {
     const dx = e.clientX - mTx;
     if (Math.abs(dx) > 40) goTo(dx < 0 ? idx + 1 : idx - 1);
   }
-  // On mouseup after a hold, leave .selectable so user can still drag to extend selection.
-  // Clear it on next mousedown (above).
   mAxis  = null;
   mMoved = false;
-  mHold  = false;
 });
 
-// ── Click backdrop to close ───────────────────────────────────
-// Browser suppresses 'click' after a touchmove, so swipes never
-// accidentally trigger this.
+// ── Click backdrop to close ──
 viewer.addEventListener('click', e => {
   if (!e.target.closest('#viewer-inner')) closeViewer();
 });
 
+// ── Keyboard ──
 document.addEventListener('keydown', e => {
   if (viewer.classList.contains('hidden')) return;
   if (e.key === 'ArrowRight') goTo(idx + 1);
@@ -872,12 +765,9 @@ async function openBook() {
   bookHint.style.opacity = '0';
   bookHint.style.pointerEvents = 'none';
 
-  // 1. Start the book-open CSS transition immediately — no waiting for fetch.
   bookEl.classList.add('opening');
-  const bookOpenMs = 1150; // matches the CSS transition duration
-  const flipDone   = new Promise(r => setTimeout(r, bookOpenMs));
+  const flipDone = new Promise(r => setTimeout(r, 1150));
 
-  // 2. Fetch articles in parallel while the book flips open.
   let fetched;
   try { fetched = await fetchArticles(5); }
   catch (err) {
@@ -895,15 +785,13 @@ async function openBook() {
   generation++;
   buildShells();
 
-  // 3. Wait for flip to finish (in case fetch was faster), then burst.
   await flipDone;
-  await drawMagicLight(); // returns Promise that resolves when burst fades out
+  await drawMagicLight();
 
-  // 4. Swap scene → viewer and reveal pages.
   scene.classList.add('hidden');
   viewer.classList.remove('hidden');
   idx = 0;
-  updateTrack(false); updateDots(); updateNavBtns();
+  updateTrack(false);
 
   document.querySelectorAll('.torn-page').forEach((el, i) => {
     el.style.animationDelay = `${i * 0.12}s`;
@@ -911,7 +799,7 @@ async function openBook() {
   });
 
   const summaryPromises = articles.map((art, i) => summarise(i, art.extract));
-  summaryPromises.forEach((p, i) => p.then(text => fillPage(i, text, null)));
+  summaryPromises.forEach((p, i) => p.then(text => fillPage(i, text)));
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -930,21 +818,20 @@ function buildShells() {
       </div>`;
     } else {
       imgHtml = `<div class="page-img-placeholder">
-        <span class="pip-glyph">✦</span>
+        <span class="pip-glyph">&#10022;</span>
         <span class="pip-label">${esc(art.title.charAt(0).toUpperCase())}</span>
       </div>`;
     }
     const wikiLink = art.url
-      ? `<a href="${esc(art.url)}" target="_blank" rel="noopener">Wikipedia ↗</a>` : '';
+      ? `<a href="${esc(art.url)}" target="_blank" rel="noopener">Wikipedia &#8599;</a>` : '';
     page.innerHTML = `
       <div class="page-paper">
-        <span class="page-num">— Page ${i+1} of ${n} —</span>
+        <span class="page-num">&#8212; Page ${i+1} of ${n} &#8212;</span>
         <h2 class="page-title">${esc(art.title)}</h2>
         ${art.description ? `<p class="page-desc">${esc(art.description)}</p>` : ''}
         <div class="page-divider"></div>
         ${imgHtml}
         <p class="page-text loading-text thinking-dots" id="pt-${i}">The ancient scribes are transcribing</p>
-        <div class="page-insight" id="pi-${i}" style="display:none"></div>
         <div class="page-footer">
           <button class="pg-prev"${i === 0 ? ' disabled' : ''}>
             <span class="pg-arrow">&#10096;</span><span>Prev</span>
@@ -957,7 +844,6 @@ function buildShells() {
       </div>`;
     track.appendChild(page);
 
-    // Wire footer buttons
     page.querySelector('.pg-prev').addEventListener('click', e => { e.stopPropagation(); goTo(i - 1); });
     page.querySelector('.pg-next').addEventListener('click', e => { e.stopPropagation(); goTo(i + 1); });
 
@@ -967,7 +853,7 @@ function buildShells() {
       if (imgEl && wrapEl) {
         imgEl.addEventListener('error', () => {
           wrapEl.outerHTML = `<div class="page-img-placeholder">
-            <span class="pip-glyph">✦</span>
+            <span class="pip-glyph">&#10022;</span>
             <span class="pip-label">${esc(art.title.charAt(0).toUpperCase())}</span>
           </div>`;
         });
@@ -976,115 +862,111 @@ function buildShells() {
   });
 }
 
-function fillPage(i, summary, insight) {
+function fillPage(i, summary) {
   const t = document.getElementById(`pt-${i}`);
-  const p = document.getElementById(`pi-${i}`);
   if (t) { t.className = 'page-text'; t.textContent = summary || articles[i].extract; }
-  if (p && insight) { p.style.display = ''; p.innerHTML = `<strong>✦ &nbsp; Wisdom</strong><br>${esc(insight)}`; }
 }
 
 // ═══════════════════════════════════════════════════════════════
-// ANIMATION — golden burst (returns Promise, resolves when done)
+// ANIMATION — golden burst
 // ═══════════════════════════════════════════════════════════════
 function drawMagicLight() {
   return new Promise(resolve => {
-  const canvas = document.createElement('canvas');
-  canvas.style.cssText =
-    'position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:50;';
-  document.body.appendChild(canvas);
-  const W = canvas.width  = window.innerWidth;
-  const H = canvas.height = window.innerHeight;
-  const ctx = canvas.getContext('2d');
+    const canvas = document.createElement('canvas');
+    canvas.style.cssText =
+      'position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:50;';
+    document.body.appendChild(canvas);
+    const W = canvas.width  = window.innerWidth;
+    const H = canvas.height = window.innerHeight;
+    const ctx = canvas.getContext('2d');
 
-  // At burst time the book is fully open and centred, so the spine is at viewport centre x.
-  // For y we measure the book element directly since it's not necessarily at viewport centre.
-  const bookRect = bookEl.getBoundingClientRect();
-  const ox = window.innerWidth / 2;
-  const oy = bookRect.top + bookRect.height / 2;
+    const bookRect = bookEl.getBoundingClientRect();
+    const ox = window.innerWidth / 2;
+    const oy = bookRect.top + bookRect.height / 2;
 
-  const startTime = performance.now();
-  const duration  = 1400;
+    const startTime = performance.now();
+    const duration  = 1400;
 
-  const RAYS = Array.from({ length: 20 }, (_, i) => ({
-    angle: (i / 20) * Math.PI * 2 + (Math.random() - .5) * .22,
-    width: 3  + Math.random() * 12,
-    delay: Math.random() * .14,
-    speed: .65 + Math.random() * .35,
-  }));
+    const RAYS = Array.from({ length: 20 }, (_, i) => ({
+      angle: (i / 20) * Math.PI * 2 + (Math.random() - .5) * .22,
+      width: 3  + Math.random() * 12,
+      delay: Math.random() * .14,
+      speed: .65 + Math.random() * .35,
+    }));
 
-  const PARTICLES = Array.from({ length: 55 }, () => ({
-    angle: Math.random() * Math.PI * 2,
-    born:  Math.random() * .22,
-    life:  .3 + Math.random() * .5,
-    r0:    1  + Math.random() * 2,
-    r1:    3  + Math.random() * 6,
-    dist0: 8  + Math.random() * 35,
-    dist1: Math.min(W, H) * (.35 + Math.random() * .5),
-  }));
+    const PARTICLES = Array.from({ length: 55 }, () => ({
+      angle: Math.random() * Math.PI * 2,
+      born:  Math.random() * .22,
+      life:  .3 + Math.random() * .5,
+      r0:    1  + Math.random() * 2,
+      r1:    3  + Math.random() * 6,
+      dist0: 8  + Math.random() * 35,
+      dist1: Math.min(W, H) * (.35 + Math.random() * .5),
+    }));
 
-  function ease(t) { return t < .5 ? 2*t*t : -1+(4-2*t)*t; }
+    function ease(t) { return t < .5 ? 2*t*t : -1+(4-2*t)*t; }
 
-  function draw(now) {
-    const t = Math.min((now - startTime) / duration, 1);
-    ctx.clearRect(0, 0, W, H);
+    function draw(now) {
+      const t = Math.min((now - startTime) / duration, 1);
+      ctx.clearRect(0, 0, W, H);
 
-    const glowR     = 35 + ease(t) * 200;
-    const glowAlpha = Math.sin(t * Math.PI) * .28;
-    const grd = ctx.createRadialGradient(ox, oy, 0, ox, oy, glowR);
-    grd.addColorStop(0,   `rgba(255,220,90,${glowAlpha})`);
-    grd.addColorStop(.35, `rgba(200,140,30,${glowAlpha * .5})`);
-    grd.addColorStop(1,   'transparent');
-    ctx.fillStyle = grd;
-    ctx.beginPath(); ctx.arc(ox, oy, glowR, 0, Math.PI * 2); ctx.fill();
+      const glowR     = 35 + ease(t) * 200;
+      const glowAlpha = Math.sin(t * Math.PI) * .28;
+      const grd = ctx.createRadialGradient(ox, oy, 0, ox, oy, glowR);
+      grd.addColorStop(0,   `rgba(255,220,90,${glowAlpha})`);
+      grd.addColorStop(.35, `rgba(200,140,30,${glowAlpha * .5})`);
+      grd.addColorStop(1,   'transparent');
+      ctx.fillStyle = grd;
+      ctx.beginPath(); ctx.arc(ox, oy, glowR, 0, Math.PI * 2); ctx.fill();
 
-    const maxDist = Math.sqrt(W * W + H * H);
-    RAYS.forEach(ray => {
-      const rt = Math.max(0, (t - ray.delay) / ray.speed);
-      if (rt <= 0) return;
-      const progress = Math.min(rt, 1);
-      const alpha    = Math.sin(progress * Math.PI) * .38;
-      const tipDist  = maxDist * .6 * progress;
-      const baseDist = tipDist * .07;
-      const cos = Math.cos(ray.angle), sin = Math.sin(ray.angle);
-      const perp = { x: -sin, y: cos };
-      const hBase = ray.width * .3, hTip = ray.width * progress * 2.4;
-      const g = ctx.createLinearGradient(ox, oy, ox + cos*tipDist, oy + sin*tipDist);
-      g.addColorStop(0,  `rgba(255,235,130,${alpha})`);
-      g.addColorStop(.5, `rgba(201,162,39,${alpha * .7})`);
-      g.addColorStop(1,  'transparent');
-      ctx.beginPath();
-      ctx.moveTo(ox + cos*baseDist - perp.x*hBase, oy + sin*baseDist - perp.y*hBase);
-      ctx.lineTo(ox + cos*baseDist + perp.x*hBase, oy + sin*baseDist + perp.y*hBase);
-      ctx.lineTo(ox + cos*tipDist  + perp.x*hTip,  oy + sin*tipDist  + perp.y*hTip);
-      ctx.lineTo(ox + cos*tipDist  - perp.x*hTip,  oy + sin*tipDist  - perp.y*hTip);
-      ctx.closePath(); ctx.fillStyle = g; ctx.fill();
-    });
-
-    PARTICLES.forEach(p => {
-      const pt = Math.max(0, (t - p.born) / p.life);
-      if (pt <= 0 || pt > 1) return;
-      const alpha = Math.sin(pt * Math.PI) * .8;
-      const dist  = p.dist0 + (p.dist1 - p.dist0) * ease(pt);
-      const r     = p.r0    + (p.r1    - p.r0)    * pt;
-      const x = ox + Math.cos(p.angle) * dist;
-      const y = oy + Math.sin(p.angle) * dist;
-      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(255,245,180,${alpha})`; ctx.fill();
-      if (p.r0 > 2.5) {
-        ctx.strokeStyle = `rgba(255,255,220,${alpha * .6})`;
-        ctx.lineWidth = .8;
+      const maxDist = Math.sqrt(W * W + H * H);
+      RAYS.forEach(ray => {
+        const rt = Math.max(0, (t - ray.delay) / ray.speed);
+        if (rt <= 0) return;
+        const progress = Math.min(rt, 1);
+        const alpha    = Math.sin(progress * Math.PI) * .38;
+        const tipDist  = maxDist * .6 * progress;
+        const baseDist = tipDist * .07;
+        const cos = Math.cos(ray.angle), sin = Math.sin(ray.angle);
+        const perp = { x: -sin, y: cos };
+        const hBase = ray.width * .3, hTip = ray.width * progress * 2.4;
+        const g = ctx.createLinearGradient(ox, oy, ox + cos*tipDist, oy + sin*tipDist);
+        g.addColorStop(0,  `rgba(255,235,130,${alpha})`);
+        g.addColorStop(.5, `rgba(201,162,39,${alpha * .7})`);
+        g.addColorStop(1,  'transparent');
         ctx.beginPath();
-        ctx.moveTo(x - r*1.6, y); ctx.lineTo(x + r*1.6, y);
-        ctx.moveTo(x, y - r*1.6); ctx.lineTo(x, y + r*1.6);
-        ctx.stroke();
-      }
-    });
+        ctx.moveTo(ox + cos*baseDist - perp.x*hBase, oy + sin*baseDist - perp.y*hBase);
+        ctx.lineTo(ox + cos*baseDist + perp.x*hBase, oy + sin*baseDist + perp.y*hBase);
+        ctx.lineTo(ox + cos*tipDist  + perp.x*hTip,  oy + sin*tipDist  + perp.y*hTip);
+        ctx.lineTo(ox + cos*tipDist  - perp.x*hTip,  oy + sin*tipDist  - perp.y*hTip);
+        ctx.closePath(); ctx.fillStyle = g; ctx.fill();
+      });
 
-    if (t < 1) requestAnimationFrame(draw);
-    else        { canvas.remove(); resolve(); }
-  }
-  requestAnimationFrame(draw);
-  }); // end Promise
+      PARTICLES.forEach(p => {
+        const pt = Math.max(0, (t - p.born) / p.life);
+        if (pt <= 0 || pt > 1) return;
+        const alpha = Math.sin(pt * Math.PI) * .8;
+        const dist  = p.dist0 + (p.dist1 - p.dist0) * ease(pt);
+        const r     = p.r0    + (p.r1    - p.r0)    * pt;
+        const x = ox + Math.cos(p.angle) * dist;
+        const y = oy + Math.sin(p.angle) * dist;
+        ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255,245,180,${alpha})`; ctx.fill();
+        if (p.r0 > 2.5) {
+          ctx.strokeStyle = `rgba(255,255,220,${alpha * .6})`;
+          ctx.lineWidth = .8;
+          ctx.beginPath();
+          ctx.moveTo(x - r*1.6, y); ctx.lineTo(x + r*1.6, y);
+          ctx.moveTo(x, y - r*1.6); ctx.lineTo(x, y + r*1.6);
+          ctx.stroke();
+        }
+      });
+
+      if (t < 1) requestAnimationFrame(draw);
+      else        { canvas.remove(); resolve(); }
+    }
+    requestAnimationFrame(draw);
+  });
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1092,14 +974,12 @@ function drawMagicLight() {
 // ═══════════════════════════════════════════════════════════════
 function goTo(i) {
   if (i < 0 || i >= articles.length) return;
-  idx = i; updateTrack(true); updateDots(); updateNavBtns();
+  idx = i; updateTrack(true);
 }
 function updateTrack(anim) {
   track.style.transition = anim ? 'transform .42s cubic-bezier(.25,.46,.45,.94)' : 'none';
   track.style.transform  = `translateX(${-idx * 100}%)`;
 }
-function updateDots() { /* dots removed */ }
-function updateNavBtns() { /* per-card buttons are statically set */ }
 function closeViewer() {
   viewer.classList.add('hidden');
   scene.classList.remove('hidden');
@@ -1111,7 +991,7 @@ function closeViewer() {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// CANDLELIT LIBRARY BACKGROUND
+// CANDLELIT BACKGROUND
 // ═══════════════════════════════════════════════════════════════
 function initStarfield() {
   const canvas = document.getElementById('bg-canvas');
